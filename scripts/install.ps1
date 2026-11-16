@@ -66,6 +66,8 @@ if (-not (Test-Path $envFile)) {
 Say 'نصب بسته‌ها (npm install)... چند دقیقه طول می‌کشد.'
 npm install --no-audit --no-fund
 if ($LASTEXITCODE -ne 0) { throw 'npm install ناموفق بود.' }
+npm run db:generate
+if ($LASTEXITCODE -ne 0) { throw 'ساخت لایه‌ی دیتابیس (prisma generate) ناموفق بود.' }
 Say 'ساخت جدول‌ها...'
 npx prisma migrate deploy
 if ($LASTEXITCODE -ne 0) { throw 'ساخت جدول‌ها ناموفق بود.' }
@@ -73,8 +75,11 @@ if ($LASTEXITCODE -ne 0) { throw 'ساخت جدول‌ها ناموفق بود.'
 # ۵) مدیر و داده‌ی نمونه (فقط بار اول)
 Say 'ساخت حساب مدیر و داده‌ی نمونه...'
 node -e "require('dotenv').config({quiet:true});require('./modules/core/services/userService').seedIfEmpty().then(()=>process.exit(0))" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw 'ساخت حساب مدیر ناموفق بود.' }
 node scripts/seed-demo.js
+if ($LASTEXITCODE -ne 0) { throw 'داده‌ی نمونه ساخته نشد.' }
 node scripts/seed-demo-calls.js
+if ($LASTEXITCODE -ne 0) { throw 'تماس‌های نمونه ساخته نشد.' }
 
 Write-Host "`n=========================================" -ForegroundColor Green
 Write-Host ' نصب تمام شد. برای اجرا: run.bat' -ForegroundColor Green
