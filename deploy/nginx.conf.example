@@ -1,0 +1,38 @@
+# پیکربندی نمونه‌ی Nginx برای CRM نمونه.
+#
+# روی سرور در مسیر /etc/nginx/sites-available/crm-template کپی شود و
+# عبارت crm.example.com با دامنه‌ی واقعی جایگزین شود.
+#
+# این فایل فقط بخش HTTP (پورت ۸۰) را دارد. بعد از اجرای certbot،
+# خودِ certbot بخش HTTPS و ریدایرکت را به همین فایل اضافه می‌کند.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name crm.example.com;
+
+    # سقف حجم فایل ارسالی. برنامه آپلود اکسل تا ۵ مگابایت را می‌پذیرد؛
+    # اگر این مقدار کمتر باشد، آپلود با خطای 413 رد می‌شود.
+    client_max_body_size 6M;
+
+    # نسخه‌ی Nginx در هدرها فاش نشود
+    server_tokens off;
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        # این هدرها لازم‌اند تا برنامه بفهمد درخواست اصل از کجا آمده و
+        # روی HTTPS بوده است. بدون X-Forwarded-Proto، کوکی امن نشست کار نمی‌کند.
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Upgrade           $http_upgrade;
+        proxy_set_header Connection        'upgrade';
+
+        proxy_read_timeout 120s;
+        proxy_send_timeout 120s;
+        proxy_cache_bypass $http_upgrade;
+    }
+}

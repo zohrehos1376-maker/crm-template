@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- فقط HTTPS. علاوه بر گواهی‌های معتبر عمومی؛ برای گواهی خودساخته فایل آن را در res/raw بگذارید و اینجا اضافه کنید
+     هم پذیرفته می‌شود — همان فایل سنجاق‌شده، نه هر گواهی دیگری. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

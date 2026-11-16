@@ -1,0 +1,53 @@
+{
+  "name": "crm-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "قالب CRM فروش (نمونه‌کار)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "postinstall": "node -e \"const p=require('path'),f=require('fs');const cwd=process.cwd().split(p.sep).join('/');const c=[process.cwd()];if(process.env.INIT_CWD)c.push(process.env.INIT_CWD);const i=cwd.indexOf('/nodevenv/');if(i>-1){const home=cwd.slice(0,i);const segs=cwd.slice(i+10).split('/').filter(Boolean);for(let k=segs.length;k>0;k--)c.push([home].concat(segs.slice(0,k)).join('/'));}const s=c.map(d=>p.join(d,'scripts','postinstall.js')).find(x=>f.existsSync(x));if(s)require(s);else console.log('[postinstall] skipped: scripts/postinstall.js not found from '+cwd)\"",
+    "db:generate": "prisma generate --schema prisma/mysql/schema.prisma",
+    "db:migrate": "prisma migrate deploy",
+    "check": "node scripts/check.js",
+    "service:install": "node scripts/service-install.js",
+    "service:uninstall": "node scripts/service-uninstall.js",
+    "backup": "node scripts/backup.js",
+    "backup:schedule": "node scripts/backup-schedule.js",
+    "backup:unschedule": "node scripts/backup-schedule.js remove",
+    "static:sync": "node scripts/sync-static-assets.js",
+    "db:deploy": "node scripts/deploy-migrate.js",
+    "prestart": "npm run static:sync",
+    "test": "node --test \"shared/*.test.js\" \"modules/**/*.test.js\""
+  },
+  "dependencies": {
+    "@prisma/adapter-mariadb": "^7.10.1",
+    "@prisma/client": "7.10.1",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.18.0",
+    "heic-convert": "^2.1.0",
+    "helmet": "^8.3.0",
+    "mariadb": "^3.5.4",
+    "multer": "^2.3.0",
+    "puppeteer-core": "^25.14.0",
+    "qrcode": "^1.5.4",
+    "sharp": "^0.35.5"
+  },
+  "devDependencies": {
+    "node-windows": "^1.0.0-beta.8",
+    "prisma": "7.10.1"
+  },
+  "allowScripts": {
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
+  },
+  "overrides": {
+    "mariadb": "$mariadb"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

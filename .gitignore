@@ -1,0 +1,56 @@
+# وابستگی‌ها
+node_modules/
+
+# داده‌های واقعی و فایل‌های تولیدشده در زمان اجرا
+data/
+data/db.json
+data/.session-secret
+data/uploads/
+data/backups/
+
+# تنظیمات محیطی (شامل مقادیر حساس)
+.env
+.env.local
+.env.*.local
+
+# لاگ‌ها
+*.log
+logs/
+daemon/
+npm-debug.log*
+
+# فایل ساخته‌شده در اولین اجرا (شامل رمز اولیه مدیر)
+SETUP.txt
+
+# فایل‌های سیستم‌عامل و ویرایشگر
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+
+backups/
+
+# ===== امنیت داده‌ها: این‌ها هرگز commit نشوند =====
+# فایل‌های دیتابیس و پشتیبان
+*.sql.gz
+*.dump
+*.enc
+*.sqlite
+*.db
+backups/
+db-backups/
+auto-crm-to-server/
+auto-crm-to-server.zip
+# رمزها و کلیدها
+.env.*
+!.env.example
+secrets*.txt
+*.jks
+*.keystore
+!android-app/test-signing.keystore
+*.p12
+*.key
+# اپ ساخته‌شده
+*.apk
+tmp/

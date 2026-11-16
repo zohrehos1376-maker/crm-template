@@ -1,0 +1,92 @@
+# ساخت APK اپ «CRM نمونه تماس» روی سرورهای GitHub (Google ابزار اندروید را به ایران نمی‌دهد).
+# نتیجه (APK + گزارش ساخت) روی شاخه‌ی ci-build گذاشته می‌شود تا از لپ‌تاپ با git برداشته شود.
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "android-app/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Keystore (از GitHub Secrets، اگر تعریف شده باشد)
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.p12"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.p12" >> "$GITHUB_ENV"
+            echo "SIGNED_WITH=release" >> "$GITHUB_ENV"
+          else
+            echo "SIGNED_WITH=test" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build APK
+        id: build
+        env:
+          ANDROID_MINIFY: "1"
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -o pipefail
+          # +۱۰۰: نسخه‌های قبلی تا ۱۶ پیش رفته بودند و شماره‌ی اجرا از نو شروع شده؛ نسخه‌ی تازه باید بزرگ‌تر باشد
+          export APP_VERSION_CODE=$(( ${{ github.run_number }} + 100 ))
+          gradle --no-daemon --stacktrace assembleRelease 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crm-template-call-${{ github.run_number }}
+          path: android-app/app/build/outputs/apk/release/*.apk
+
+      - name: Publish result to ci-build branch
+        if: always()
+        working-directory: ${{ runner.temp }}
+        run: |
+          rm -rf out && mkdir out && cd out
+          cp "$RUNNER_TEMP/build.log" . 2>/dev/null || echo "no log" > build.log
+          grep -nE "^e: |^w: .*(error)|error:|FAILURE|What went wrong|Could not|AAPT" -A4 build.log | head -300 > errors.txt || true
+          {
+            echo "run=${{ github.run_number }}"
+            echo "sha=${{ github.sha }}"
+            echo "outcome=${{ steps.build.outcome }}"
+            echo "signed=${SIGNED_WITH:-unknown}"
+            echo "versionCode=$(( ${{ github.run_number }} + 100 ))"
+          } > status.txt
+          cp "$GITHUB_WORKSPACE"/android-app/app/build/outputs/apk/release/*.apk ./crm-template-call.apk 2>/dev/null || true
+          # ابزار رسمی امضای اندروید — برای امضای نهایی روی لپ‌تاپ با کلید اصلی (کلید به GitHub نمی‌رود)
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)
+          cp "${BT}lib/apksigner.jar" . 2>/dev/null || true
+          git init -q -b ci-build
+          git add -A
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -qm "build ${{ github.run_number }} (${{ steps.build.outcome }})"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-build

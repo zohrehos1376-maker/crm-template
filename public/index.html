@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- شناسه‌ی نسخه‌ی این فایل HTML. اگر این تگ در صفحه نباشد یعنی یک نسخه‌ی
+     کهنه از index.html نمایش داده شده و theme.js صفحه را به نسخه‌ی درست می‌برد. -->
+<meta name="crm-build" content="20260915-2">
+<title>CRM نمونه | CRM</title>
+<link rel="icon" type="image/svg+xml" href="/img/crm-logo.svg">
+<!-- فونت از روی همین سرور خوانده می‌شود، نه از اینترنت. مهم‌ترین وزن (۴۰۰)
+     زودتر بارگذاری می‌شود تا متن دیرتر «بپرد». -->
+<link rel="preload" href="/fonts/Vazirmatn-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<!-- tokens.css همیشه قبل از app.css — پایه‌ی سیستم طراحی است -->
+<link rel="stylesheet" href="/css/tokens.css?v=20260922-7">
+<link rel="stylesheet" href="/css/app.css?v=20261114-3">
+<!-- تم باید قبل از رسم صفحه اعمال شود تا رنگ‌ها موقع باز شدن «نپرند» -->
+<script src="/js/theme.js?v=20260922-7"></script>
+</head>
+<body class="one-branch">
+
+<!-- ---------------- login screen ---------------- -->
+<!-- تا بررسی نشست تمام نشده پنهان است؛ وگرنه با هر refresh یک لحظه صفحه‌ی ورود دیده می‌شود -->
+<div id="loginScreen" class="login-wrap" hidden>
+  <div class="login-card">
+    <div class="login-brand">
+      <img src="/img/crm-logo.svg" alt="CRM نمونه">
+      <div>
+        <h1>CRM نمونه</h1>
+        <p>ورود کارشناسان و مدیریت</p>
+      </div>
+    </div>
+    <div id="loginError" class="login-error" hidden></div>
+    <form id="loginForm">
+      <div class="field">
+        <label>نام کاربری</label>
+        <input type="text" id="li_username" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label>رمز عبور</label>
+        <input type="password" id="li_password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block" id="loginBtn">ورود</button>
+    </form>
+  </div>
+</div>
+
+<!-- ---------------- main app ---------------- -->
+<div id="appScreen" class="wrap" hidden>
+  <div class="topbar">
+    <div class="brand">
+      <img src="/img/crm-logo.svg" alt="CRM نمونه">
+      <div>
+        <h1>CRM نمونه</h1>
+        <p>سامانه داخلی ثبت و پیگیری سرنخ‌ها</p>
+      </div>
+    </div>
+    <div class="who">
+      <button class="btn btn-ghost btn-sm" id="changePassBtn">تغییر رمز عبور</button>
+      <span id="whoName" class="name"></span>
+      <span id="whoRole" class="role-badge"></span>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn">خروج</button>
+    </div>
+  </div>
+
+  <!-- بالا فقط دو بخش اصلی (CRM / باشگاه مشتریان)؛ صفحه‌های هر بخش در نوار کناری -->
+  <div class="tabs module-tabs" id="tabs"></div>
+
+  <div class="app-body" id="appBody">
+  <nav class="side-nav" id="sideNav" aria-label="صفحه‌ها"></nav>
+  <main class="app-main">
+
+  <!-- ===== تب: امروز ===== -->
+  <!-- ===== تب: لیدهای گرم (🌤 چند نشانه‌ی خرید در ۷ روز اخیر) ===== -->
+  <div id="mdLive" class="live-float" hidden></div>
+  <div class="tab-panel" id="panel-customers" hidden>
+    <div class="page-head">
+      <h2 class="page-title">مشتریان</h2>
+      <p class="page-sub">فهرست کامل مشتریان — روی عنوان هر ستون بزنید تا بر اساس آن مرتب شود</p>
+    </div>
+
+    <div class="card">
+      <!-- نوار مرحله‌ی مشتری (shared/customer-stage.js) -->
+      <div class="segment-row stage-bar" id="cStageBar"></div>
+      <div class="toolbar">
+        <input type="search" id="cSearch" placeholder="جست‌وجوی نام، تلفن، شهر، مدل یا کمپانی…">
+        <select id="cChannel">
+          <option value="">همه کانال‌ها</option>
+          <option>تماس تلفنی</option>
+          <option>حضوری / مراجعه</option>
+          <option>وبسایت</option>
+          <option>اینستاگرام</option>
+          <option>تلگرام</option>
+          <option>واتساپ</option>
+          <option>دیوار</option>
+          <option>شیپور</option>
+          <option>معرفی مشتری</option>
+          <option>سایر</option>
+        </select>
+        <select id="cTag" aria-label="فیلتر برچسب">
+          <option value="">همه برچسب‌ها</option>
+        </select>
+        <select id="cOwner" hidden aria-label="فیلتر کارشناس"></select>
+        <select id="cOutcome" aria-label="فیلتر نتیجه‌ی تماس">
+          <option value="">همه‌ی نتیجه‌ها</option>
+          <option value="price_inquiry">فقط استعلام قیمت</option>
+          <option value="price_objection">اعتراض به قیمت</option>
+          <option value="order">سفارش داد</option>
+          <option value="out_of_stock">محصول ناموجود خواست</option>
+          <option value="callback">قرار تماس دوباره</option>
+          <option value="cooperation">درخواست همکاری</option>
+          <option value="support">پیگیری سفارش / پشتیبانی</option>
+          <option value="irrelevant">نامرتبط</option>
+        </select>
+        <label class="hint" style="display:flex;align-items:center;gap:4px;margin:0;"><input type="checkbox" id="cNoPurchase"> بدون خرید</label>
+        <select id="cSort" aria-label="مرتب‌سازی">
+          <option value="createdAt:desc">جدیدترین ثبت</option>
+          <option value="createdAt:asc">قدیمی‌ترین ثبت</option>
+          <option value="name:asc">نام (الف تا ی)</option>
+          <option value="name:desc">نام (ی تا الف)</option>
+          <option value="city:asc">شهر (الف تا ی)</option>
+          <option value="city:desc">شهر (ی تا الف)</option>
+          <option value="nextFollowUpDate:asc">نزدیک‌ترین پیگیری</option>
+          <option value="updatedAt:desc">آخرین تغییر</option>
+        </select>
+        <span class="count" id="cCount"></span>
+        <button class="btn btn-ghost btn-sm" id="cExport" type="button">خروجی اکسل</button>
+        <span id="cImportWrap" hidden>
+          <a class="btn btn-ghost btn-sm" href="/api/v1/leads/customers-template">نمونه‌ی اکسل مشتریان</a>
+          <button class="btn btn-ghost btn-sm" id="cImportBtn" type="button" title="نام، تلفن، شهر، فروشگاه، نوع مشتری، وضعیت احراز، منبع، توضیحات — شماره‌ی موجود به‌روز می‌شود">⬆ ورود اکسل مشتریان</button>
+          <input type="file" id="cImportFile" accept=".xlsx" hidden>
+        </span>
+        <button class="btn btn-danger btn-sm" id="cDeleteSelected" type="button" hidden>حذف مشتریان انتخاب‌شده</button>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead><tr id="cHeadRow"></tr></thead>
+          <tbody id="cTbody"></tbody>
+        </table>
+      </div>
+      <div class="pager" id="cPager" hidden></div>
+      <div class="empty" id="cEmpty" hidden>مشتری‌ای با این فیلترها پیدا نشد.</div>
+    </div>
+  </div>
+
+  <!-- ===== تب: پیگیری گروهی (پروژه‌های پیگیری) ===== -->
+  <div class="tab-panel" id="panel-mine">
+    <div class="grid lead-page">
+      <div class="card form-card">
+        <h2 id="formTitle">ثبت دستی / مراجعه‌ی حضوری</h2>
+        <div class="field" id="assignRepWrap" hidden>
+          <label>ثبت به‌نام کارشناس</label>
+          <select id="f_assignRep"></select>
+        </div>
+        <form id="leadForm">
+          <div class="field lf-name">
+            <label>نام و نام خانوادگی مشتری</label>
+            <input type="text" id="f_name" placeholder="اختیاری — مثلاً علی رضایی">
+          </div>
+          <div class="field lf-phone">
+            <label>شماره تماس <span class="req">*</span></label>
+            <input type="tel" id="f_phone" required placeholder="09xxxxxxxxx">
+            <div class="phone-dup" id="f_phone_dup" hidden></div>
+          </div>
+          <div class="field lf-channel">
+            <label>منبع ورود <span class="req">*</span></label>
+            <select id="f_channel">
+              <option value="">انتخاب کنید…</option>
+              <option>تماس تلفنی</option>
+              <option>اینستاگرام</option>
+              <option>وردست</option>
+              <option>فرم همکاری سایت</option>
+              <option>وبسایت</option>
+              <option>تلگرام</option>
+              <option>واتساپ</option>
+              <option>حضوری</option>
+              <option>معرفی همکار</option>
+              <option>سایر</option>
+            </select>
+          </div>
+          <div class="field lf-shop">
+            <label>نام فروشگاه / تعمیرگاه</label>
+            <input type="text" id="f_shop" placeholder="مثلاً موبایل رضا">
+          </div>
+          <div class="row2 lf-city">
+            <div class="field"><label>شهر</label><input type="text" id="f_city" placeholder="مثلاً تهران"></div>
+            <div class="field"><label>نوع مشتری</label><select id="f_jobtype"><option value="">انتخاب…</option><option>تعمیرکار</option><option>قطعه‌فروش</option><option>تعمیرکار و قطعه‌فروش</option><option>مصرف‌کننده</option><option>سایر</option></select></div>
+          </div>
+          <div class="field lf-tags">
+            <label>برچسب‌ها</label>
+            <div class="tag-picker" id="f_tags"></div>
+            <div class="tag-new">
+              <input type="text" id="f_tag_new" maxlength="30" placeholder="برچسب جدید…">
+              <button type="button" class="btn btn-ghost btn-sm" id="f_tag_add">افزودن</button>
+            </div>
+          </div>
+          <div class="field lf-contact">
+            <label>از چه طریقی می‌توان با مشتری در ارتباط بود؟</label>
+            <div class="checks" id="f_contactMethods">
+              <label><input type="checkbox" value="تماس تلفنی">تماس تلفنی</label>
+              <label><input type="checkbox" value="واتساپ">واتساپ</label>
+              <label><input type="checkbox" value="تلگرام">تلگرام</label>
+              <label><input type="checkbox" value="پیامک">پیامک</label>
+              <label><input type="checkbox" value="ایمیل">ایمیل</label>
+            </div>
+          </div>
+          <div class="field lf-price" hidden>
+            <label>بازه قیمت مورد نظر (دلار)</label>
+            <div class="row2">
+              <input type="number" id="f_pricefrom" placeholder="از (دلار)" min="0">
+              <input type="number" id="f_priceto" placeholder="تا (دلار)" min="0">
+            </div>
+          </div>
+          <div class="row2 lf-pay" hidden>
+            <div class="field">
+              <label>شرایط پرداخت</label>
+              <select id="f_payment">
+                <option value="">انتخاب…</option>
+                <option>نقدی</option><option>چک</option><option>اعتباری</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>نحوه‌ی ارسال</label>
+              <select id="f_delivery">
+                <option value="">انتخاب…</option>
+                <option>تحویل حضوری</option><option>پیک</option><option>پست / باربری</option>
+              </select>
+            </div>
+          </div>
+          <div class="field lf-notes">
+            <label>یادداشت</label>
+            <textarea id="f_notes" rows="1" placeholder="هر نکته‌ای درباره مشتری که بعداً به کار می‌آید…"></textarea>
+          </div>
+          <div class="field lf-next">
+            <label>قدم بعدی — تاریخ پیگیری</label>
+            <div class="chip-row" id="f_next_quick">
+              <button type="button" class="chip active" data-f-next="0">بدون پیگیری</button>
+              <button type="button" class="chip" data-f-next="1">فردا</button>
+              <button type="button" class="chip" data-f-next="3">۳ روز دیگر</button>
+              <button type="button" class="chip" data-f-next="7">هفته‌ی بعد</button>
+            </div>
+            <div class="lf-next-row">
+              <input type="text" id="f_next_date" inputmode="numeric" placeholder="یا تاریخ: ۱۴۰۵/۰۸/۱۵">
+              <input type="text" id="f_next_note" maxlength="190" placeholder="یادداشت قدم بعدی (اختیاری)">
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block lf-submit" id="submitBtn">ثبت سرنخ</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="segment-row" id="segmentRow">
+          <span class="label">نوع مشتری</span>
+          <button type="button" class="chip active" data-segment="">همه <span class="n" id="seg_n_all">۰</span></button>
+          <button type="button" class="chip" data-segment="walkin">حضوری / مراجعه <span class="n" id="seg_n_walkin">۰</span></button>
+          <button type="button" class="chip" data-segment="social">سوشال‌مدیا <span class="n" id="seg_n_social">۰</span></button>
+          <button type="button" class="chip" data-segment="followup">پیگیری امروز / عقب‌افتاده <span class="n" id="seg_n_followup">۰</span></button>
+        </div>
+        <div class="toolbar">
+          <input type="search" id="search" placeholder="جست‌وجوی نام، تلفن، مدل یا کمپانی…">
+          <select id="filterStatus">
+            <option value="">همه وضعیت‌ها</option>
+            <option>جدید</option><option>تماس اولیه/ارسال پیام</option><option>در حال پیگیری</option>
+            <option>مراجعه حضوری</option><option>فروش موفق</option><option>فروش ناموفق</option>
+          </select>
+          <select id="filterOwner" hidden></select>
+          <select id="filterBranch" class="branch-ui" hidden></select>
+          <span class="count" id="resultCount"></span>
+          <a class="btn btn-ghost btn-sm" id="importTemplateLink" href="/api/v1/leads/import-template">نمونه اکسل</a>
+          <button class="btn btn-ghost btn-sm" id="importBtn" type="button">آپلود اکسل</button>
+          <input type="file" id="importFile" accept=".xlsx" hidden>
+          <button class="btn btn-ghost btn-sm" id="exportBtn" type="button">خروجی اکسل</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr id="tableHeadRow">
+                <th>مشتری</th><th>منبع</th><th>فروشگاه / شهر</th>
+                <th>مرحله</th><th>پیگیری بعدی</th><th>تاریخ</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+        <div class="pager" id="leadsPager" hidden></div>
+        <div class="empty" id="emptyState" hidden>هنوز سرنخی ثبت نشده است.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== تب: گزارشات (قبلاً داشبورد مدیریتی) ===== -->
+  <div class="tab-panel" id="panel-dashboard" hidden>
+    <div class="page-head">
+      <h2 class="page-title">گزارشات</h2>
+      <p class="page-sub">امروزِ کل تیم — تماس‌های گوشی‌های کاری، پیگیری‌ها، سرنخ‌های تازه و کارهای عقب‌مانده</p>
+    </div>
+    <!-- گزارش‌گیری: پیش‌نمایش + خروجی اکسل و PDF با نام مشتری‌ها (public/js/report-export.js) -->
+    <div class="card rx-card" id="rxCard">
+      <h2>📊 گزارش‌گیری (اکسل و PDF)</h2>
+      <div class="rx-bar">
+        <label class="rx-f"><span>گزارش</span><select id="rxKind">
+          <option value="sales">گزارش فروش‌ها</option>
+          <option value="inquiries">استعلام قیمت بدون خرید</option>
+          <option value="out_of_stock">کالای ناموجود درخواستی</option>
+          <option value="reasons">علت عدم خرید و گزارش‌های مشاوران</option>
+          <option value="performance">عملکرد کارشناس‌ها</option>
+          <option value="kyc">احراز همکاری</option>
+          <option value="new_customers">مشتریان تازه به تفکیک منبع</option>
+        </select></label>
+        <label class="rx-f"><span>از تاریخ</span><input type="text" id="rxFrom" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۰۱"></label>
+        <label class="rx-f"><span>تا تاریخ</span><input type="text" id="rxTo" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۱۸"></label>
+        <label class="rx-f"><span>کارشناس</span><select id="rxUser"><option value="">همه</option></select></label>
+        <div class="rx-btns">
+          <button type="button" class="btn btn-primary btn-sm" id="rxShow">نمایش</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="rxXlsx">⬇ اکسل</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="rxPdf">⬇ PDF</button>
+        </div>
+      </div>
+      <div class="chip-row rx-quick" id="rxQuick">
+        <button type="button" class="chip" data-rx-range="today">امروز</button>
+        <button type="button" class="chip" data-rx-range="7">۷ روز اخیر</button>
+        <button type="button" class="chip active" data-rx-range="30">۳۰ روز اخیر</button>
+        <button type="button" class="chip" data-rx-range="month">این ماه</button>
+        <button type="button" class="chip" data-rx-range="lastmonth">ماه قبل</button>
+      </div>
+      <div id="rxOut"></div>
+    </div>
+    <div class="kpi-grid" id="dashKpis"></div>
+    <div class="mp-todo dash-alerts" id="dashAlerts"></div>
+
+    <div class="card card-pad daily-card" style="margin-bottom:16px;">
+      <div class="score-head">
+        <h2>📄 گزارش روزانه‌ی مدیران</h2>
+        <select id="drDay" aria-label="روز گزارش"></select>
+      </div>
+      <p class="sub" style="margin-top:0;">هر شب ساعت ۲۲ فایل PDF این گزارش خودکار در بله برای شما فرستاده می‌شود تا برای مدیرها در واتس‌اپ بفرستید. آمار تیم خودکار است؛ کارهای خودتان را این‌جا بنویسید.</p>
+      <label class="field" for="drNote" style="display:block;">
+        <span style="font-weight:700;">کارهای امروز من (مدیر CRM)</span>
+        <textarea id="drNote" rows="4" placeholder="مثلاً: جلسه با کارشناس‌ها · آموزش ثبت تماس · پیگیری مشکل گوشی"></textarea>
+      </label>
+      <div class="daily-actions">
+        <button type="button" class="btn btn-primary btn-sm" id="drSave">ذخیره‌ی کارهای من</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="drPdf">دانلود PDF</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="drSend">ارسال الان به بله</button>
+        <span class="cell-sub" id="drStatus"></span>
+      </div>
+      <div class="daily-dest">
+        <span id="drDest" class="cell-sub">مقصد ارسال شبانه: …</span>
+        <button type="button" class="btn btn-ghost btn-sm" id="drLink">تنظیم بله‌ی شخصی من</button>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h2>کارهای امروز کارشناسان</h2>
+      <p class="sub">از ابتدای امروز — <a class="fu-link" href="#/performance" data-tab-link="performance">روزهای دیگر و جزئیات در «آمار کار کارشناسان» ←</a></p>
+      <div id="dashToday" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="chart-row">
+      <div class="card card-pad">
+        <h2>وضعیت سرنخ‌ها</h2>
+        <p class="sub" id="dashLeadTotals">هر سرنخ الان در چه مرحله‌ای است</p>
+        <div class="donut-wrap">
+          <div id="statusDonut"></div>
+          <div class="legend" id="statusLegend"></div>
+        </div>
+      </div>
+      <div class="card card-pad">
+        <h2>سرنخ‌ها به تفکیک کانال</h2>
+        <p class="sub">مشتری‌ها از کجا می‌آیند</p>
+        <div id="channelBars" class="bars"></div>
+      </div>
+    </div>
+
+
+  </div>
+
+  <!-- ===== تب: عملکرد کارشناسان ===== -->
+  <div class="tab-panel" id="panel-performance" hidden>
+    <div class="page-head">
+      <h2 class="page-title">آمار کار کارشناسان</h2>
+      <p class="page-sub">شمارش واقعی کارهای هر کارشناس، روزبه‌روز — بدون نمره و رتبه</p>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <div class="score-head">
+        <h2>خلاصه‌ی بازه</h2>
+        <select id="rsRange" aria-label="بازه‌ی زمانی">
+          <option value="1" selected>امروز</option>
+          <option value="y">دیروز</option>
+          <option value="7">۷ روز اخیر</option>
+          <option value="30">۳۰ روز اخیر</option>
+          <option value="90">۹۰ روز اخیر</option>
+        </select>
+      </div>
+      <div class="kpi-grid" id="rsKpis"></div>
+      <h3 class="rs-sec">هر کارشناس در این بازه</h3>
+      <div id="rsReps"></div>
+      <p class="sub">«جواب به بی‌پاسخ» = تماس‌های بی‌پاسخی که این کارشناس به آن‌ها زنگ برگشته. «نام‌گذاری شماره‌ی خام» = شماره‌ی بی‌نامی که با تماس یا ویرایش پرونده اسم و فامیل گرفت. «زمان تأیید احراز» = از رسیدن مدرک تا تأیید.</p>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h2>روزبه‌روز</h2>
+      <p class="sub" style="margin-top:0;">هر روز را باز کنید تا کارهای هر کارشناس در همان روز را ببینید</p>
+      <div id="rsDays"></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h2>📦 لیست ناموجود درخواستی</h2>
+      <div id="rsOos"></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h2>اعتراض به قیمت</h2>
+      <div id="rsObj"></div>
+    </div>
+    <div class="card card-pad" style="margin-bottom:16px;">
+      <h2>احراز هویت: مدت تأیید</h2>
+      <div id="rsKyc"></div>
+    </div>
+    <div class="card card-pad" id="acWrap" hidden>
+      <div class="page-head" style="margin-bottom:8px;"><h2 class="page-title" style="font-size:1.1em;">ریز اقدامات کارشناسان</h2><p class="page-sub">همه‌ی کارهای ثبت‌شده‌ی هر مشاور روی پرونده‌ها</p></div>
+      <div class="hot-toolbar">
+        <div class="segment-row" id="acRange" style="margin:0;">
+          <button type="button" class="chip" data-d="1">امروز</button>
+          <button type="button" class="chip active" data-d="7">۷ روز</button>
+          <button type="button" class="chip" data-d="30">۳۰ روز</button>
+        </div>
+        <select id="acUser" aria-label="مشاور"><option value="">همه‌ی مشاوران</option></select>
+        <button type="button" class="btn btn-ghost btn-sm" id="acExcel">خروجی اکسل</button>
+      </div>
+      <div style="margin-top:12px;"><div id="acSummary"></div></div>
+      <div style="margin-top:16px;"><p class="sub">بیشتر اقدام‌ها کاری لازم ندارند؛ هر جا لازم بود «درخواست پیگیری» را بزنید</p><div class="ask-box" id="acAsk" hidden></div><div id="acLog"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== تب: تماس‌ها (گوشی‌های کاری) ===== -->
+  <div class="tab-panel" id="panel-calls" hidden>
+    <div class="page-head">
+      <h2 class="page-title">تماس‌ها</h2>
+      <p class="page-sub">تماس‌های گوشی‌های کاری — روی هر تماس «ثبت تماس» را بزنید و فرم همین‌جا باز می‌شود</p>
+    </div>
+    <div id="callKpiWrap" hidden>
+      <div class="section-title" style="margin-top:0;">خلاصه‌ی تماس‌ها <span class="sub" style="font-weight:500;" id="crPeriodTop"></span></div>
+      <div class="kpi-grid" id="crKpis"></div>
+    </div>
+    <div class="segment-row call-tabs" id="callTabs">
+      <button type="button" class="chip active" data-ctab="">همه</button>
+      <button type="button" class="chip" data-ctab="unlogged">⏳ بلاتکلیف <span class="n" id="ct_unlogged">۰</span></button>
+      <button type="button" class="chip" data-ctab="missed">📵 بی‌پاسخ — باید زنگ زد <span class="n" id="ct_missed">۰</span></button>
+      <button type="button" class="chip" data-ctab="callback">↩ تماس برگشتی گرفته شد</button>
+      <button type="button" class="chip" data-ctab="logged">✓ ثبت شد</button>
+      <button type="button" class="chip" data-ctab="dismissed">✕ ثبت نشد</button>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <input type="search" id="callSearch" placeholder="جست‌وجوی شماره، نام یا یادداشت…">
+        <select id="callRange" aria-label="بازه‌ی زمانی">
+          <option value="1">امروز</option>
+          <option value="7" selected>۷ روز اخیر</option>
+          <option value="30">۳۰ روز اخیر</option>
+          <option value="0">همه</option>
+        </select>
+        <select id="callSort" aria-label="ترتیب">
+          <option value="desc">جدیدترین اول</option>
+          <option value="asc">قدیمی‌ترین اول</option>
+        </select>
+        <select id="callLine" aria-label="خط"><option value="">همه‌ی خطوط</option></select>
+        <select id="callOperator" aria-label="پاسخ‌دهنده"><option value="">همه‌ی پاسخ‌دهنده‌ها</option></select>
+        <select id="callDirection" aria-label="نوع تماس">
+          <option value="">همه‌ی انواع</option>
+          <option value="INCOMING">ورودی</option>
+          <option value="OUTGOING">خروجی</option>
+          <option value="MISSED">بی‌پاسخ</option>
+          <option value="REJECTED">قطع شد (رد تماس)</option>
+        </select>
+        <button type="button" class="btn btn-ghost btn-sm" id="callSortHead" title="ترتیب زمان">زمان <span id="callSortArrow">▼</span></button>
+        <span class="count" id="callCount"></span>
+      </div>
+      <div class="ct-head" aria-hidden="true">
+        <span>زمان</span><span>نوع تماس</span><span>شماره</span><span>مشتری</span><span>مدت</span><span>خط</span><span>پاسخ‌دهنده</span><span>یادداشت</span><span>وضعیت</span>
+      </div>
+      <div id="callTbody" class="call-cards"></div>
+      <div class="empty" id="callEmpty" hidden>تماسی پیدا نشد. وقتی اپ «اپ تماس» روی گوشی‌ها نصب و جفت شود، تماس‌ها این‌جا می‌آیند.</div>
+    </div>
+
+    <div class="card card-pad" id="callReportCard" hidden>
+      <h2>گزارش تماس‌ها <span class="sub" style="font-weight:500;" id="crPeriod"></span></h2>
+      <div class="section-title">هر پاسخ‌دهنده</div>
+      <div class="table-scroll"><table><thead><tr><th>پاسخ‌دهنده</th><th>تماس</th><th>پاسخ‌داده</th><th>مجموع مکالمه</th><th>میانگین</th><th>ثبت‌شده</th><th>ثبت‌نشده</th></tr></thead><tbody id="crOps"></tbody></table></div>
+      <div class="section-title">نحوه‌ی آشنایی (تماس‌های ثبت‌شده)</div>
+      <div id="crHeard" class="bars"></div>
+      <div class="section-title">حجم تماس هر خط — ساعت و روز هفته</div>
+      <div id="crLines"></div>
+    </div>
+  </div>
+
+  <!-- ===== تب: باشگاه مشتریان ===== -->
+
+
+  <!-- ثبت اطلاعات یک تماس (همان پاپ‌آپ اپ، برای تکمیل از CRM) -->
+  <div class="overlay" id="callLogOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true">
+      <div class="modal-head">
+        <h3 id="cg_title">ثبت تماس</h3>
+        <button class="x" id="cg_close" aria-label="بستن">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="sub" id="cg_sub" style="margin-top:0;"></p>
+        <div class="field"><label>پاسخ‌دهنده <span class="req">*</span></label><select id="cg_operator"></select></div>
+        <div class="field"><label>نام مشتری <span class="hint" style="margin:0;">(اختیاری)</span></label><input type="text" id="cg_name"></div>
+        <div class="field"><label>نتیجه‌ی تماس <span class="hint" style="margin:0;">(با کلیک، چند گزینه)</span></label><div class="cg-outcomes" id="cg_outcomes"></div></div>
+        <div class="field" id="cg_product_wrap" hidden><label>محصول درخواستی</label><input type="text" id="cg_product" placeholder="مثلاً LCD سامسونگ A51 اورجینال"></div>
+        <div class="field" id="cg_heard_wrap"><label>از کجا با ما آشنا شده <span class="hint" style="margin:0;">(اختیاری)</span></label><select id="cg_heard"></select></div>
+        <div class="field"><label>محتوای مکالمه (اختیاری)</label><textarea id="cg_note" rows="3" placeholder="هر چیزی که در فهرست نتیجه‌ها نیست"></textarea></div>
+        <div class="field">
+          <label>تاریخ پیگیری <span class="hint" style="margin:0;">(اختیاری، شمسی)</span></label>
+          <div class="cg-quick">
+            <button type="button" class="btn btn-ghost btn-sm" data-fu="1">فردا</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-fu="3">۳ روز دیگر</button>
+            <button type="button" class="btn btn-ghost btn-sm" data-fu="7">هفته بعد</button>
+          </div>
+          <input type="text" id="cg_followup" inputmode="numeric" placeholder="۱۴۰۵/۰۷/۲۵">
+          <div class="hint" id="cg_followup_hint" style="margin:4px 0 0;"></div>
+        </div>
+        <div class="hint" id="cg_newlead_hint" hidden>این شماره در CRM نیست — اگر نام، نحوه‌ی آشنایی یا خلاصه وارد شود، سرنخ تازه به‌نام پاسخ‌دهنده ساخته می‌شود.</div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-primary" id="cg_save" style="flex:2">ثبت</button>
+        <button class="btn btn-ghost" id="cg_cancel" style="flex:1">بعداً</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- پرونده‌ی عضو باشگاه: اطلاعات + همه‌ی خریدها -->
+  <div class="tab-panel" id="panel-workdesk" hidden>
+    <div class="page-head"><h2 class="page-title">میز کار امروز</h2><p class="page-sub">همه‌ی کارهای امروز یک‌جا — از بالا به پایین انجام دهید</p></div>
+    <div class="kpi-grid" id="wdCards"></div>
+    <div class="wd-cols">
+      <div>
+        <div class="card card-pad" id="wdWaitCard"><h2>⏰ منتظر پاسخ <span class="cell-sub" id="wdWaitCount"></span></h2><p class="sub">تماس‌های بی‌پاسخ، فرم‌های سایت و وردست که هنوز کسی سراغشان نرفته — بعد از ۳۰ دقیقه قرمز می‌شوند</p><div id="wdWait" class="wait-list"></div></div>
+        <div class="card card-pad" id="wdTasksCard"><h2>وظیفه‌های باز من</h2><div id="wdTasks"></div></div>
+      </div>
+      <aside class="card card-pad wd-scripts"><h2>💬 جمله‌های آماده</h2><div class="wd-script-head"><input type="search" id="wdScriptQ" placeholder="جست‌وجو در جمله‌ها…"><button type="button" class="btn btn-ghost btn-sm" id="wdScriptAdd" title="افزودن جمله‌ی جدید">➕ جدید</button></div><div id="wdScripts"></div></aside>
+    </div>
+  </div>
+  <!-- ===== کارهای من: یک صف + یک اقدام (public/js/mydesk.js) ===== -->
+  <div class="tab-panel panel-wide" id="panel-consultant" hidden>
+    <div class="page-head"><h2 class="page-title">کارهای من</h2><p class="page-sub">هر ردیف را «رسیدگی» بزنید: چه شد؟ · توضیح · بعدش؟ — هیچ مشتری‌ای بدون قدم بعدی نمی‌ماند</p></div>
+    <div class="card card-pad">
+      <div class="md-head">
+        <div class="md-count" id="mdCount">—</div>
+        <div class="md-safety" id="mdSafety"></div>
+        <input type="search" id="mdQ" placeholder="جست‌وجو: نام، شماره یا توضیح…">
+        <select id="mdDays" aria-label="بازه"><option value="1">امروز و دیروز</option><option value="7" selected>۷ روز اخیر</option><option value="30">۳۰ روز اخیر</option></select>
+      </div>
+      <div class="segment-row md-kinds" id="mdKinds"></div>
+      <div id="mdList"></div>
+      <div id="mdDone"></div>
+    </div>
+  </div>
+  <div class="tab-panel panel-wide" id="panel-forms" hidden>
+    <div class="page-head"><h2 class="page-title">فرم‌های همکاری</h2><p class="page-sub">فرم‌هایی که از سایت می‌آیند — مدارک را ببینید و فرم را تأیید یا رد کنید. پیگیری مشتری در تب «کارهای من» انجام می‌شود.</p></div>
+    <div class="card card-pad">
+      <div class="cd-toolbar">
+        <div class="segment-row" id="fmKinds" style="margin:0"></div>
+        <input type="search" id="fmQ" placeholder="جست‌وجو: نام، شماره، شهر، فروشگاه یا کارشناس…">
+        <select id="fmDays" aria-label="بازه"><option value="1">امروز و دیروز</option><option value="7" selected>۷ روز اخیر</option><option value="30">۳۰ روز اخیر</option></select>
+        <button type="button" class="btn btn-primary btn-sm" id="fmPull" title="فرم‌های تازه‌ی سایت همین حالا خوانده می‌شود؛ فرم تکراری دوباره ثبت نمی‌شود">⟳ دریافت فرم‌های تازه</button>
+      </div>
+      <div id="fmList"></div>
+    </div>
+  </div>
+  <div class="tab-panel panel-wide" id="panel-vardast" hidden>
+    <div class="page-head"><h2 class="page-title">لیدهای وردست</h2><p class="page-sub">لیدهای اینستاگرام و تلگرام که ربات وردست می‌گیرد — زنگ بزنید و قدم بعدی را بگذارید.</p></div>
+    <div class="card card-pad">
+      <div class="cd-toolbar">
+        <div class="segment-row" id="vdKinds" style="margin:0"></div>
+        <input type="search" id="vdQ" placeholder="جست‌وجو: نام، شماره، شهر، فروشگاه یا کارشناس…">
+        <select id="vdDays" aria-label="بازه"><option value="1">امروز و دیروز</option><option value="7" selected>۷ روز اخیر</option><option value="30">۳۰ روز اخیر</option></select>
+      </div>
+      <div id="vdList"></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="panel-tasks" hidden>
+    <div class="page-head"><h2 class="page-title">وظیفه‌ها و پیگیری‌ها</h2><p class="page-sub">به ترتیب موعد؛ وظیفه‌ی جدید از داخل پرونده‌ی مشتری ساخته می‌شود</p></div>
+    <div class="hot-toolbar">
+      <div class="segment-row" id="tkFilter" style="margin:0;">
+        <button type="button" class="chip active" data-st="open">باز</button>
+        <button type="button" class="chip" data-st="overdue">سررسید گذشته</button>
+        <button type="button" class="chip" data-st="done">انجام‌شده</button>
+      </div>
+      <select id="tkAssignee" aria-label="مسئول" hidden><option value="">همه‌ی مسئول‌ها</option></select>
+    </div>
+    <div class="card card-pad"><div id="tkList"></div></div>
+  </div>
+  <div class="tab-panel" id="panel-queue" hidden>
+    <div class="page-head"><h2 class="page-title">صف مشتریان بدون مسئول</h2><p class="page-sub">ورودی‌های فرم سایت و سرنخ‌های خودکار — با «برداشتن»، مسئول پرونده می‌شوید</p></div>
+    <div class="card card-pad"><div id="quList"></div></div>
+  </div>
+  <div class="tab-panel panel-wide" id="panel-analytics" hidden>
+    <div class="page-head"><h2 class="page-title">آمار فروش</h2><p class="page-sub">بر اساس فاکتورهای ثبت‌شده — مبلغ‌ها به ریال</p></div>
+    <div class="chip-row an-tabs" id="anTabs"></div>
+    <div class="card card-pad rx-card">
+      <div class="rx-bar" id="anRangeBar">
+        <label class="rx-f"><span>از تاریخ</span><input type="text" id="anFrom" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۰۱"></label>
+        <label class="rx-f"><span>تا تاریخ</span><input type="text" id="anTo" inputmode="numeric" placeholder="۱۴۰۵/۰۸/۳۰"></label>
+        <div class="rx-btns">
+          <button type="button" class="btn btn-primary btn-sm" id="anShow">نمایش</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="anXlsx">⬇ اکسل</button>
+        </div>
+      </div>
+      <div class="chip-row rx-quick" id="anQuick">
+        <button type="button" class="chip" data-an-range="7">۷ روز اخیر</button>
+        <button type="button" class="chip active" data-an-range="30">۳۰ روز اخیر</button>
+        <button type="button" class="chip" data-an-range="90">۳ ماه اخیر</button>
+        <button type="button" class="chip" data-an-range="month">این ماه</button>
+        <button type="button" class="chip" data-an-range="lastmonth">ماه قبل</button>
+        <button type="button" class="chip" data-an-range="year">یک سال اخیر</button>
+      </div>
+      <div class="rx-btns an-xlsx-only" id="anXlsxOnly" hidden><button type="button" class="btn btn-ghost btn-sm" id="anXlsx2">⬇ اکسل</button></div>
+      <div id="anOut"></div>
+    </div>
+  </div>
+  <div class="tab-panel" id="panel-reports" hidden>
+    <div class="page-head"><h2 class="page-title">گزارش‌ها و درخواست‌های مشاوران</h2><p class="page-sub">علت عدم خرید، قیمت رقبا، کالای ناموجود و شکایت — با پاسخ مدیر فروش</p></div>
+    <div class="hot-toolbar">
+      <select id="rpKind" aria-label="نوع گزارش"><option value="">همه‌ی گزارش‌ها</option></select>
+      <select id="rpStatus" aria-label="رسیدگی"><option value="">همه‌ی وضعیت‌ها</option><option value="open">در انتظار رسیدگی</option><option value="resolved">رسیدگی‌شده</option></select>
+    </div>
+    <div class="card card-pad"><div id="rpList"></div></div>
+  </div>
+  <div class="tab-panel" id="panel-manager" hidden>
+    <div class="page-head"><h2 class="page-title">میز کار مدیر فروش</h2><p class="page-sub">عملکرد تیم، صف پیگیری و رسیدگی به گزارش‌های مشاوران</p></div>
+    <div class="hot-toolbar">
+      <div class="segment-row" id="mgRange" style="margin:0;">
+        <button type="button" class="chip" data-d="1">امروز</button>
+        <button type="button" class="chip active" data-d="7">۷ روز</button>
+        <button type="button" class="chip" data-d="30">۳۰ روز</button>
+      </div>
+      <select id="mgBranch" aria-label="شعبه"><option value="">همه‌ی شعبه‌ها</option></select>
+      <select id="mgUser" aria-label="مشاور"><option value="">همه‌ی اعضا</option></select>
+      <select id="mgKind" aria-label="نوع گزارش"><option value="">همه‌ی گزارش‌ها</option></select>
+      <select id="mgStatus" aria-label="رسیدگی"><option value="open">در انتظار رسیدگی</option><option value="resolved">رسیدگی‌شده</option><option value="">همه‌ی وضعیت‌ها</option></select>
+      <button type="button" class="btn btn-ghost btn-sm" id="mgAuto">توقف به‌روزرسانی خودکار</button>
+    </div>
+    <p class="hint" id="mgChecked"></p>
+    <div class="kpi-grid" id="mgCards"></div>
+    <div class="card card-pad"><h2>قیف فروش همکاران</h2><p class="sub">از تماس اولیه تا خرید — هر پله شمار کسانی است که به آن پله رسیده‌اند</p><div class="funnel" id="mgFunnel"></div></div>
+    <div class="card card-pad"><h2>ورودی‌های احراز همکاری</h2><div class="kpi-grid" id="mgKyc" style="margin:0"></div></div>
+    <div class="card card-pad"><h2>گزارش‌ها و درخواست‌های مشاوران</h2><div id="mgReports"></div></div>
+    <div class="card card-pad"><h2>عملکرد ثبت‌شده‌ی اعضای فعال</h2><p class="sub">مرتب‌شده بر اساس تعداد گزارش؛ این ترتیب رتبه‌ی کیفیت فروش نیست (برای رتبه، «جدول امتیازات»). بازه‌ی تاریخ روی ثبت‌ها اعمال می‌شود؛ عقب‌افتادگی، وضعیت فعلی است.</p><div id="mgTeam"></div></div>
+    <div class="card card-pad"><h2>نزدیک‌ترین وظیفه‌های باز</h2><p class="sub">حداکثر ۱۲ مورد، به ترتیب سررسید؛ مستقل از بازه‌ی گزارش</p><div id="mgTasks"></div>
+      <button type="button" class="btn btn-ghost btn-sm" data-wd-tab="tasks">صف کامل پیگیری‌ها</button>
+      <button type="button" class="btn btn-ghost btn-sm" id="mgScripts">مدیریت جمله‌های آماده</button></div>
+  </div>
+  <div class="tab-panel" id="panel-settings" hidden>
+    <div class="page-head">
+      <h2 class="page-title">تنظیمات</h2>
+      <p class="page-sub">ظاهر برنامه، پیام‌های آماده، شعبه‌ها و کاربران</p>
+    </div>
+
+    <div class="settings-layout">
+    <nav class="settings-side" id="settingsNav" aria-label="بخش‌های تنظیمات"></nav>
+    <div class="settings-body">
+
+    <div class="settings-section" id="set-display">
+      <div class="card card-pad settings-card">
+        <h2>ظاهر برنامه</h2>
+        <p class="sub">تم انتخابی روی همین مرورگر ذخیره می‌شود و بلافاصله اعمال می‌گردد.</p>
+        <div class="theme-grid" id="themeGrid"></div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-messages" hidden>
+      <div class="card card-pad settings-card">
+        <h2>پیام‌های آماده</h2>
+        <p class="sub">این متن‌ها همان چیزی هستند که با دکمه‌های «کپی پیام» در پرونده مشتری کپی می‌شوند. تغییر شما برای همه کارشناسان اعمال می‌شود.</p>
+
+        <div class="placeholder-help" id="msgPlaceholders"></div>
+
+        <div class="row2">
+          <div class="field">
+            <label>شماره تماس</label>
+            <input type="text" id="msg_phone" placeholder="مثلاً 0416105">
+            <div class="hint">در انتهای هر سه پیام نوشته می‌شود.</div>
+          </div>
+          <div class="field">
+            <label>لینک کانال</label>
+            <input type="text" id="msg_link" placeholder="مثلاً https://t.me/...">
+            <div class="hint">در پیام دعوت به کانال استفاده می‌شود.</div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>پیام خوش‌آمد</label>
+          <textarea id="msg_welcome" rows="5"></textarea>
+        </div>
+        <div class="field">
+          <label>پیام یادآوری پیگیری</label>
+          <textarea id="msg_reminder" rows="5"></textarea>
+        </div>
+        <div class="field">
+          <label>پیام دعوت به کانال</label>
+          <textarea id="msg_invite" rows="4"></textarea>
+        </div>
+
+        <div class="field">
+          <label>پیش‌نمایش پیام دعوت</label>
+          <pre class="msg-preview" id="msgPreview"></pre>
+        </div>
+
+        <div class="row2">
+          <button type="button" class="btn btn-primary" id="msgSave">ذخیره پیام‌ها</button>
+          <button type="button" class="btn btn-ghost" id="msgReset">بازگشت به متن پیش‌فرض</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-branches" hidden>
+      <div class="grid">
+        <div class="card form-card">
+          <h2 id="branchFormTitle">افزودن شعبه جدید</h2>
+          <p class="sub">هر کاربر به یک شعبه تعلق دارد و سرنخ‌هایش به‌طور خودکار همان شعبه را می‌گیرند</p>
+          <form id="branchForm">
+            <div class="field"><label>نام شعبه <span class="req">*</span></label><input type="text" id="b_name" required placeholder="مثلاً دفتر مرکزی"></div>
+            <div class="field"><label>شهر</label><input type="text" id="b_city" placeholder="مثلاً تهران"></div>
+            <div class="field"><label>آدرس</label><input type="text" id="b_address" placeholder="اختیاری"></div>
+            <button type="submit" class="btn btn-primary btn-block" id="branchSubmitBtn">ایجاد شعبه</button>
+            <button type="button" class="btn btn-ghost btn-block" id="branchCancelBtn" hidden>انصراف از ویرایش</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>نام شعبه</th><th>شهر</th><th>آدرس</th><th>کاربران</th><th></th></tr></thead>
+              <tbody id="branchesTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-users" hidden>
+      <div class="grid">
+        <div class="card form-card">
+          <h2>افزودن کاربر جدید</h2>
+          <p class="sub">برای هر کارشناس یا مدیر یک حساب جداگانه بسازید — بعد از ساختن، از دکمه‌ی «دسترسی‌ها» در جدول، بخش‌های اضافه را برایش روشن کنید</p>
+          <form id="userForm">
+            <div class="field"><label>نام کامل <span class="req">*</span></label><input type="text" id="u_fullname" required></div>
+            <div class="field"><label>نام کاربری <span class="req">*</span></label><input type="text" id="u_username" required></div>
+            <div class="field"><label>رمز عبور اولیه <span class="req">*</span></label><input type="text" id="u_password" required placeholder="حداقل ۸ کاراکتر"></div>
+            <div class="field" id="u_roleWrap">
+              <label>نوع حساب <span class="req">*</span></label>
+              <select id="u_role" required><option value="rep">معمولی (دسترسی‌ها را بعداً تیک بزنید)</option><option value="manager">مدیر (همه‌ی دسترسی‌ها)</option></select>
+            </div>
+            <div class="field" id="u_roleTitleWrap">
+              <label>عنوان نقش</label>
+              <input type="text" id="u_roleTitle" maxlength="40" placeholder="خالی = کارشناس فروش؛ مثلاً: مدیر کل، پشتیبان">
+            </div>
+            <div class="field branch-ui">
+              <label>شعبه <span class="req">*</span></label>
+              <select id="u_branch" required></select>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">ایجاد کاربر</button>
+          </form>
+        </div>
+        <div class="card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>نام</th><th>نام کاربری</th><th>نقش</th><th>دسترسی‌ها</th><th class="branch-ui">شعبه</th><th>وضعیت</th><th></th></tr></thead>
+              <tbody id="usersTbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-phonelines" hidden>
+      <div class="grid">
+        <div class="card form-card">
+          <h2>افزودن خط تلفن</h2>
+          <p class="sub">برای هر گوشی کاری یک خط بسازید، بعد با اپ «اپ تماس» روی همان گوشی QR یا کد را اسکن کنید</p>
+          <div class="field"><label>نام خط <span class="req">*</span></label><input type="text" id="pl_name" placeholder="مثلاً خط ۱ — شوروم تهران"></div>
+          <div class="field"><label>شماره‌ی سیم‌کارت کاری <span class="hint" style="margin:0;">(اختیاری)</span></label><input type="tel" id="pl_sim" placeholder="09xxxxxxxxx"></div>
+          <div class="field branch-ui"><label>شعبه <span class="hint" style="margin:0;">(اختیاری)</span></label><input type="text" id="pl_branch"></div>
+          <button type="button" class="btn btn-primary btn-block" id="pl_add">ساخت خط و کد جفت‌سازی</button>
+        </div>
+        <div class="card">
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>خط</th><th>سیم‌کارت</th><th>وضعیت</th><th>آخرین اتصال</th><th>نسخه‌ی اپ</th><th></th></tr></thead>
+              <tbody id="phoneLinesTbody"></tbody>
+            </table>
+          </div>
+          <div class="empty" id="phoneLinesEmpty" hidden>هنوز خطی ساخته نشده است.</div>
+          <div id="phoneLinesArchived" hidden></div>
+          <div class="pairing-box" id="pairingBox" hidden>
+            <div class="pairing-qr" id="pairingQr"></div>
+            <div>
+              <div class="section-title" style="margin-top:0;" id="pairingTitle">جفت‌سازی</div>
+              <div class="pairing-code" id="pairingCode"></div>
+              <div class="hint" id="pairingInfo"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-dups" hidden>
+      <div class="card card-pad">
+        <h2>سرنخ‌های تکراری</h2>
+        <p class="sub">سرنخ‌هایی که شماره‌ی یکسان دارند (با هر شکل نوشتن: ۰۹…، ‎+98…، بدون صفر). در هر گروه یکی را «اصلی» انتخاب کنید و «ادغام» بزنید: همه‌ی پیگیری‌ها، محصولات درخواستی و تماس‌ها به سرنخ اصلی منتقل می‌شوند، جاهای خالی‌اش پر می‌شود، توضیحات کنار هم می‌آیند و بقیه حذف می‌شوند. پیشنهاد اصلی = سرنخی که وضعیتش جلوتر و فعالیتش بیشتر است.</p>
+        <div id="dupSummary" class="dup-summary"></div>
+        <div id="dupList"></div>
+        <div class="empty" id="dupEmpty" hidden>سرنخ تکراری‌ای پیدا نشد 👌</div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-backup" hidden>
+      <div class="card card-pad">
+        <h2>پشتیبان روزانه در بله</h2>
+        <p class="sub">هر روز ساعت ۷ صبح، بعد از پشتیبان‌گیری روی سرور، یک نسخه‌ی <b>رمزگذاری‌شده</b> از کل دیتابیس CRM به چت خصوصی ربات بله‌ی خودتان فرستاده می‌شود؛ اگر سرور از بین برود، اطلاعات می‌ماند.</p>
+        <ol class="bk-steps">
+          <li>در بله به <b>@botfather</b> پیام بدهید، یک ربات تازه بسازید و <b>توکن</b> آن را کپی کنید.</li>
+          <li>توکن را در کادر زیر بگذارید.</li>
+          <li>در بله به <b>ربات خودتان</b> یک پیام (مثلاً «سلام») بفرستید، بعد «پیدا کردن چت» را بزنید.</li>
+          <li>یک <b>رمز برای فایل‌ها</b> انتخاب کنید و جای امنی یادداشت کنید — بدون این رمز فایل‌ها باز نمی‌شوند.</li>
+          <li>«ذخیره» و بعد «ارسال آزمایشی» را بزنید.</li>
+        </ol>
+        <div class="field"><label>توکن ربات بله</label><input type="password" id="bk_token" autocomplete="off" dir="ltr" placeholder="مثلاً 123456789:AbC…"></div>
+        <div class="field">
+          <label>چت مقصد</label>
+          <div class="tag-new">
+            <input type="text" id="bk_chat" readonly placeholder="هنوز پیدا نشده">
+            <button type="button" class="btn btn-ghost btn-sm" id="bk_find">پیدا کردن چت</button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>رمز فایل‌های پشتیبان</label><input type="password" id="bk_pass" autocomplete="new-password" placeholder="دست‌کم ۸ نویسه"></div>
+          <div class="field"><label>تکرار رمز</label><input type="password" id="bk_pass2" autocomplete="new-password"></div>
+        </div>
+        <div class="bk-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="bk_save">ذخیره</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="bk_test">ارسال آزمایشی</button>
+        </div>
+        <div class="bk-status" id="bk_status"></div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-sms" hidden>
+      <div class="card card-pad" id="smsConnCard">
+        <h2>اتصال سامانه‌ی پیامکی</h2>
+        <p class="sub">هیچ پیامکی بدون تأیید کارشناس فرستاده نمی‌شود — همیشه اول متن نشان داده می‌شود و کارشناس «ارسال» یا «بدون پیامک» را انتخاب می‌کند. تا این سامانه وصل نشده، به‌جای ارسال، همان متن برای کپی/ارسال دستی آماده می‌شود.</p>
+        <ol class="bk-steps">
+          <li>وارد پنل <b>IPPanel</b> (ippanel.com) شوید و از بخش «کلید دسترسی / API Key» یک کلید بسازید و کپی کنید.</li>
+          <li>کلید و <b>شماره‌ی خط</b> فرستنده (مثلاً 3000505) را در کادرهای زیر بگذارید و «ذخیره» را بزنید.</li>
+          <li>شماره‌ی موبایل خودتان را بنویسید و «ارسال پیامک آزمایشی» را بزنید.</li>
+        </ol>
+        <div class="row2">
+          <div class="field"><label>کلید API</label><input type="password" id="sms_key" autocomplete="off" dir="ltr" placeholder="کلید را این‌جا بگذارید"></div>
+          <div class="field"><label>شماره‌ی خط فرستنده</label><input type="text" id="sms_sender" dir="ltr" inputmode="numeric" placeholder="مثلاً 3000505"></div>
+        </div>
+        <div class="bk-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="sms_save">ذخیره</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="sms_off">قطع اتصال</button>
+        </div>
+        <div class="field" style="margin-top:14px"><label>پیامک آزمایشی به</label>
+          <div class="tag-new">
+            <input type="tel" id="sms_test_phone" dir="ltr" placeholder="0912…">
+            <button type="button" class="btn btn-ghost btn-sm" id="sms_test">ارسال پیامک آزمایشی</button>
+          </div>
+        </div>
+        <div class="bk-status" id="sms_status"></div>
+      </div>
+      <div class="card card-pad" id="smsLogCard">
+        <h2>پیامک‌های فرستاده‌شده</h2>
+        <p class="sub">هر پیامکی که از سامانه رفته: چه متنی، چه کسی فرستاده و برای کدام مشتری. با کلیک روی نام مشتری، پرونده‌اش باز می‌شود.</p>
+        <div class="hot-toolbar">
+          <input type="search" id="smsLogQ" placeholder="جست‌وجو: نام مشتری، شماره یا متن پیامک…">
+          <select id="smsLogStatus" aria-label="وضعیت">
+            <option value="">همه‌ی وضعیت‌ها</option>
+            <option value="sent">فرستاده شد</option>
+            <option value="failed">ناموفق</option>
+            <option value="manual">دستی (پنل وصل نیست)</option>
+          </select>
+        </div>
+        <div id="smsLogList"></div>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-channels" hidden>
+      <div class="card card-pad">
+        <h2>نحوه‌ی آشنایی / کانال ارتباطی</h2>
+        <p class="sub">همین فهرست در فرم ثبت سرنخ، فیلترها و پاپ‌آپ اپ «اپ تماس» نمایش داده می‌شود. گزینه‌ی غیرفعال در فرم‌های جدید نمی‌آید ولی سرنخ‌های قدیمی مقدارشان را نگه می‌دارند.</p>
+        <div id="channelList" class="channel-list"></div>
+        <div class="tag-new" style="margin-top:10px;">
+          <input type="text" id="ch_new" maxlength="60" placeholder="گزینه‌ی جدید…">
+          <button type="button" class="btn btn-ghost btn-sm" id="ch_add">افزودن</button>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="ch_save" style="margin-top:12px;">ذخیره‌ی فهرست</button>
+      </div>
+    </div>
+
+    <div class="settings-section" id="set-scripts" hidden>
+      <div class="card card-pad"><h2>جمله‌های آماده‌ی فروش</h2><p class="sub">جمله‌هایی که کارشناس پشت تلفن به مشتری می‌گوید؛ در «میز کار امروز» جلوی چشمش است و با یک کلیک کپی می‌شود. می‌توانید {نام} بگذارید.</p><div id="scEditor" data-kind="script"></div></div>
+    </div>
+    <div class="settings-section" id="set-vardast" hidden>
+      <div class="card card-pad"><h2>اتصال وردست</h2><p class="sub">سرنخ‌های اینستاگرام و سفارش‌هایی که ربات وردست می‌گیرد، خودکار وارد «صف بدون مسئول» می‌شوند. اگر شماره قبلاً مشتری بوده، فقط در سابقه‌ی پرونده‌اش ثبت می‌شود.</p><div id="vdInfo"></div></div>
+    </div>
+    <div class="settings-section" id="set-fuopts" hidden>
+      <div class="card card-pad"><h2>گزینه‌های ثبت پیگیری</h2><p class="sub">گزینه‌های «چه شد؟» در کارت‌های استیکردار «📝 ثبت پیگیری». کارشناس موقع ثبت، از منوی کشویی انتخاب می‌کند و متن در یادداشت می‌نشیند.</p>
+        <div class="section-title">✅ تماس گرفتم — جواب داد</div><div id="fuEditor_fu_ok"></div>
+        <div class="section-title">📵 تماس گرفتم — جواب نداد</div><div id="fuEditor_fu_noanswer"></div>
+        <div class="section-title">💬 پیام دادم</div><div id="fuEditor_fu_msg"></div>
+        <div class="section-title">🏢 حضوری آمد</div><div id="fuEditor_fu_visit"></div>
+      </div>
+    </div>
+    <div class="settings-section" id="set-smstpl" hidden>
+      <div class="card card-pad"><h2>متن همه‌ی پیامک‌ها</h2><p class="sub">همین متن‌ها موقع ارسال به کارشناس نشان داده می‌شوند و او می‌تواند هر بار هم ویرایششان کند. موضوع‌های kyc_link، kyc_remind، kyc_rejected و kyc_approved در احراز همکاری استفاده می‌شوند؛ price_inquiry_2 برای فرستادن دستی لیست قیمت. {نام}، {لینک} و {دلیل} جای‌گذاری می‌شوند. تیک «در دسترس مشاوران باشد» یعنی این پیام فعال است.</p><div id="smEditor" data-kind="sms"></div></div>
+    </div>
+
+    </div><!-- settings-body -->
+    </div><!-- settings-layout -->
+  </div>
+  </main>
+  </div><!-- app-body -->
+</div>
+
+
+<!-- ---------------- lead detail modal ---------------- -->
+<div class="overlay" id="overlay" hidden>
+  <div class="modal modal-file" role="dialog" aria-modal="true">
+    <div id="m_presence"></div>
+    <div class="modal-head">
+      <h3 id="m_title">جزئیات سرنخ</h3>
+      <span id="m_heat" class="m-heat"></span>
+      <button class="x" id="m_close" aria-label="بستن">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- CRM نمونه: پرونده در یک نگاه — چپ: مشخصات و سابقه‌ی همه‌ی عملیات؛ وسط: عملیات روی مشتری -->
+      <div class="file-grid">
+      <aside class="file-left">
+      <dl class="kv" id="m_kv"></dl>
+      <div class="section-title">مدارک</div>
+      <div id="m_docs" class="m-docs"></div>
+      <!-- ویرایش مشخصات، همان‌جا که مشخصات مشتری دیده می‌شود -->
+      <button type="button" class="btn btn-ghost btn-sm" id="m_editToggle">ویرایش اطلاعات مشتری</button>
+
+      <!-- فرم ویرایش اطلاعات مشتری — پیش‌فرض بسته است -->
+      <div id="m_editWrap" hidden>
+        <div class="section-title">ویرایش اطلاعات مشتری</div>
+        <div class="row2">
+          <div class="field"><label>نام و نام خانوادگی</label><input type="text" id="me_name" placeholder="اگر نمی‌دانید خالی بگذارید"></div>
+          <div class="field"><label>شماره تماس <span class="req">*</span></label><input type="tel" id="me_phone"></div>
+        </div>
+        <div class="field">
+          <label>برچسب‌ها</label>
+          <div class="tag-picker" id="me_tags"></div>
+          <div class="tag-new">
+            <input type="text" id="me_tag_new" maxlength="30" placeholder="برچسب جدید…">
+            <button type="button" class="btn btn-ghost btn-sm" id="me_tag_add">افزودن</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>کانال ارتباطی</label>
+          <select id="me_channel">
+            <option value="">انتخاب کنید…</option>
+            <option>تماس تلفنی</option>
+            <option>حضوری / مراجعه</option>
+            <option>وبسایت</option>
+            <option>اینستاگرام</option>
+            <option>تلگرام</option>
+            <option>واتساپ</option>
+            <option>دیوار</option>
+            <option>شیپور</option>
+            <option>معرفی مشتری</option>
+            <option>سایر</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>از چه طریقی می‌توان با مشتری در ارتباط بود؟</label>
+          <div class="checks" id="me_contactMethods">
+            <label><input type="checkbox" value="تماس تلفنی">تماس تلفنی</label>
+            <label><input type="checkbox" value="واتساپ">واتساپ</label>
+            <label><input type="checkbox" value="تلگرام">تلگرام</label>
+            <label><input type="checkbox" value="پیامک">پیامک</label>
+            <label><input type="checkbox" value="ایمیل">ایمیل</label>
+          </div>
+        </div>
+
+        <div class="field" hidden>
+          <label>بازه قیمت مورد نظر (دلار)</label>
+          <div class="row2">
+            <input type="number" id="me_pricefrom" placeholder="از (دلار)" min="0">
+            <input type="number" id="me_priceto" placeholder="تا (دلار)" min="0">
+          </div>
+        </div>
+        <div class="row2" hidden>
+          <div class="field">
+            <label>شرایط پرداخت</label>
+            <select id="me_payment">
+              <option value="">انتخاب…</option><option>نقدی</option><option>چک</option><option>اعتباری</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>نحوه‌ی ارسال</label>
+            <select id="me_delivery">
+              <option value="">انتخاب…</option><option>تحویل حضوری</option><option>پیک</option><option>پست / باربری</option>
+            </select>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>نام فروشگاه / تعمیرگاه</label><input type="text" id="me_shop"></div>
+          <div class="field"><label>کد آلور <span class="hint" style="margin:0;">(کد مشتری در حسابداری)</span></label><input type="text" id="me_alvar" dir="ltr" inputmode="numeric" maxlength="32" placeholder="مثلاً 10245"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>شهر</label><input type="text" id="me_city"></div>
+          <div class="field"><label>نوع مشتری</label><select id="me_jobtype"><option value="">انتخاب…</option><option>تعمیرکار</option><option>قطعه‌فروش</option><option>تعمیرکار و قطعه‌فروش</option><option>مصرف‌کننده</option><option>سایر</option></select></div>
+        </div>
+        <div class="field"><label>یادداشت</label><textarea id="me_notes" rows="3" placeholder="هر نکته‌ای درباره مشتری که بعداً به کار می‌آید…"></textarea></div>
+
+        <div class="row2">
+          <button type="button" class="btn btn-primary btn-sm" id="me_save">ذخیره اطلاعات مشتری</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="me_cancel">انصراف</button>
+        </div>
+      </div>
+      <div id="m_fileInfo" class="file-info"></div>
+      <!-- توضیحات جدا و پررنگ‌تر از بقیه‌ی فیلدها — عمداً، تا کارشناس دقیق‌تر بنویسدش -->
+      <div class="notes-box" id="m_notesBox">
+        <div class="notes-box-label">یادداشت‌ها</div>
+        <div class="notes-box-text" id="m_notesText"></div>
+        <div id="m_notesList" class="notes-list"></div>
+        <div class="notes-add"><textarea id="m_noteNew" rows="2" maxlength="190" placeholder="یادداشت تازه…"></textarea>
+        <button type="button" class="btn btn-primary btn-sm" id="m_noteSave">ثبت یادداشت</button></div>
+      </div>
+
+      </aside>
+      <section class="file-main">
+      <!-- مرحله‌ی مشتری و اقدام بعدی (shared/customer-stage.js) -->
+      <div id="m_nextAction"></div>
+      <!-- ثبت پیگیری: کارت‌های یک‌ضربه‌ای به‌جای فرم — تاریخ پیش‌فرض امروز -->
+      <div class="fu-card" id="m_fu">
+        <div class="fu-head">
+          <span class="fu-title">📝 ثبت پیگیری</span>
+          <span class="fu-when" id="m_fu_when">امروز</span>
+          <button type="button" class="fu-link" id="m_fu_date_btn">تاریخ دیگر</button>
+        </div>
+        <div class="fu-date" id="m_fu_date_wrap" hidden>
+          <input type="text" id="m_fu_date" inputmode="numeric" placeholder="۱۴۰۵/۰۷/۲۰">
+          <span class="hint" id="m_fu_date_hint" style="margin:0;"></span>
+        </div>
+        <div class="fu-kinds" id="m_fu_kinds">
+          <button type="button" class="fu-kind ok" data-kind="ok"><span class="fu-emoji">✅</span><b>تماس گرفتم</b><span>جواب داد</span></button>
+          <button type="button" class="fu-kind fail" data-kind="noanswer"><span class="fu-emoji">📵</span><b>تماس گرفتم</b><span>جواب نداد</span></button>
+          <button type="button" class="fu-kind msg" data-kind="msg"><span class="fu-emoji">💬</span><b>پیام دادم</b><span>واتساپ، بله، پیامک</span></button>
+          <button type="button" class="fu-kind visit" data-kind="visit"><span class="fu-emoji">🏢</span><b>حضوری آمد</b><span>مراجعه به فروشگاه</span></button>
+        </div>
+        <div class="fu-more" id="m_fu_more" hidden>
+          <div class="fu-label">چه شد؟ <span class="cell-sub">(از منو انتخاب کنید یا بنویسید — اختیاری)</span></div>
+          <div class="fu-chips" id="m_fu_chips"></div>
+          <input type="text" id="m_fu_note" placeholder="یادداشت کوتاه…">
+          <div class="fu-label">پیگیری بعدی</div>
+          <div class="fu-chips" id="m_fu_next">
+            <button type="button" class="fu-chip" data-next="1">فردا</button>
+            <button type="button" class="fu-chip" data-next="3">۳ روز دیگر</button>
+            <button type="button" class="fu-chip" data-next="7">هفته‌ی بعد</button>
+            <button type="button" class="fu-chip on" data-next="0">فعلاً نه</button>
+          </div>
+          <div class="fu-actions">
+            <button type="button" class="btn btn-primary" id="m_fu_save">ثبت ✓</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="m_fu_cancel">انصراف</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="wdLead" class="wd-lead"></div>
+
+      <div class="file-block">
+      <div class="field">
+        <!-- ثبت سفارش/فروش — هر بار که مشتری سفارش می‌دهد. بعداً به حسابداری وصل می‌شود و فاکتورها از آنجا خوانده می‌شوند. -->
+        <div class="direct-sale" id="m_directSaleWrap">
+          <button type="button" class="btn btn-sm btn-sale" id="m_directSale">✓ ثبت فروش موفق</button>
+          <button type="button" class="btn btn-sm btn-lost" id="m_directLost">✗ ثبت فروش ناموفق</button>
+          <span class="hint" style="margin:0;">هر بار که مشتری سفارش می‌دهد یا منصرف می‌شود، همین‌جا ثبت کنید</span>
+        </div>
+        <div class="sold-badge" id="m_soldBadge" hidden>✓ فروش موفق ثبت شده است</div>
+        <div class="sold-badge lost-badge" id="m_lostBadge" hidden>✗ فروش ناموفق ثبت شده است</div>
+        <!-- پنهان: فقط نتیجهٔ سفارش را نگه می‌دارد (فروش موفق / ناموفق) -->
+        <select id="m_status" hidden>
+          <option>جدید</option><option>تماس اولیه/ارسال پیام</option><option>در حال پیگیری</option>
+          <option>مراجعه حضوری</option><option>فروش موفق</option><option>فروش ناموفق</option>
+        </select>
+      </div>
+      <div class="field" id="m_cancelWrap" hidden>
+        <label>دلیل انصراف مشتری <span class="req">*</span></label>
+        <textarea id="m_cancelReason" placeholder="مثلاً قیمت بالاتر از بودجه بود…"></textarea>
+      </div>
+      <div class="field" id="m_soldWrap" hidden>
+        <label>شماره فاکتور <span class="req">*</span></label>
+        <input type="text" id="m_soldInvoice" dir="ltr" autocomplete="off" maxlength="40" placeholder="مثلاً 10234">
+        <div class="field" style="margin-top:var(--sp-2);">
+          <label>مبلغ فاکتور (ریال) <span class="req">*</span></label>
+          <input type="text" id="m_soldPrice" inputmode="numeric" dir="ltr" autocomplete="off" placeholder="مثلاً 15,000,000">
+        </div>
+      </div>
+      <!-- یادآوری تاریخ‌دار حذف شد؛ فیلدها فقط برای سازگاری JS مانده‌اند -->
+      <div class="row2" hidden>
+        <div class="field">
+          <label>تاریخ یادآوری <span class="hint" style="margin:0;">(شمسی — خالی یعنی بدون یادآوری)</span></label>
+          <input type="text" id="m_next_date" inputmode="numeric" placeholder="۱۴۰۵/۰۶/۰۹">
+          <div class="hint" id="m_next_date_hint" style="margin:4px 0 0;"></div>
+        </div>
+        <div class="field">
+          <label>یادداشت یادآوری</label>
+          <input type="text" id="m_next_note" placeholder="مثلاً تماس برای اعلام موجودی">
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-sm" id="m_saveStatus">ذخیره تغییرات</button>
+
+      </div>
+
+
+      <!-- پیگیری مرحله اول حذف شد؛ عنصر برای سازگاری JS می‌ماند. -->
+      <div class="first-touch-grid" id="firstTouchGrid" hidden></div>
+
+      <!-- پیامک‌های کپی‌شدنی و فهرست جدای پیگیری‌ها: جایشان را پیامک کشویی و سابقه‌ی سمت چپ گرفته؛ برای سازگاری JS پنهان می‌مانند -->
+      <div hidden>
+      <div class="section-title">پیامک آماده</div>
+      <div class="hint" style="margin-top:0;">متن در کلیپ‌بورد کپی می‌شود تا خودتان بفرستید — هیچ پیامکی خودکار ارسال نمی‌شود.</div>
+      <div class="row2">
+        <button type="button" class="btn btn-ghost btn-sm" id="m_sms_welcome">کپی پیامک خوش‌آمد</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="m_sms_reminder">کپی پیامک یادآوری</button>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm btn-block" id="m_sms_invite" style="margin-top:var(--sp-2);">کپی دعوت به کانال</button>
+
+      <div id="m_followupsWrap">
+        <div class="section-title">گزارش تماس‌ها و پیگیری‌ها</div>
+        <div id="m_followups"></div>
+      </div>
+      </div>
+      </section>
+      <aside class="file-side"><div id="m_priceInq" class="pi-box" hidden></div><div class="file-history"><div class="section-title">سابقه‌ی همه‌ی عملیات و انجام‌دهنده</div><div id="m_timeline" class="timeline"></div></div>
+      </aside>
+            </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="m_deleteBtn" style="flex:1" hidden>حذف مشتری</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------- پاپ‌آپ یک باکس پیگیری مرحله اول ---------------- -->
+<div class="overlay ft-overlay" id="ftOverlay" hidden>
+  <div class="modal" style="max-width:420px;" role="dialog" aria-modal="true">
+    <div class="modal-head">
+      <h3 id="ft_title">تماس ۱</h3>
+      <button class="x" id="ft_close" aria-label="بستن">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="hint" id="ft_dateHint" style="margin-top:0;"></div>
+      <div class="field">
+        <label>محتوای مکالمه <span class="req">*</span></label>
+        <textarea id="ft_content" placeholder="خلاصه صحبت با مشتری…"></textarea>
+      </div>
+      <div class="field">
+        <div class="checks">
+          <label><input type="checkbox" id="ft_messageSent">پیام ارسال شد (پیامک/واتساپ)</label>
+          <label><input type="checkbox" id="ft_viaSocial">از طریق شبکه‌های اجتماعی</label>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>تاریخ پیگیری بعدی (اختیاری)</label><input type="text" id="ft_nextDate" inputmode="numeric" placeholder="۱۴۰۵/۰۶/۲۶"></div>
+        <div class="field"><label>یادداشت پیگیری بعدی</label><input type="text" id="ft_nextNote" placeholder="مثلاً نتیجه بازدید را بپرس"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" id="ft_save" style="flex:1">ثبت</button>
+      <button class="btn btn-ghost" id="ft_cancel">انصراف</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------------- change password modal ---------------- -->
+<div class="overlay" id="pwOverlay" hidden>
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-head"><h3>تغییر رمز عبور</h3><button class="x" id="pw_close">✕</button></div>
+    <div class="modal-body">
+      <div id="pwError" class="login-error" hidden></div>
+      <div class="field"><label>رمز عبور فعلی</label><input type="password" id="pw_old"></div>
+      <div class="field"><label>رمز عبور جدید</label><input type="password" id="pw_new" placeholder="حداقل ۸ کاراکتر"></div>
+      <button class="btn btn-primary btn-block" id="pw_submit">تغییر رمز</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script src="/js/jalali.js?v=20260922-7"></script>
+<script src="/js/jdate-picker.js?v=20261112-1"></script>
+<script src="/js/combo-select.js?v=20261105-3"></script>
+<script src="/js/app.js?v=20261114-1"></script>
+<script src="/js/workdesk.js?v=20261108-2"></script>
+<script src="/js/customer-file.js?v=20261112-7"></script>
+<script src="/js/consultant-desk.js?v=20261105-3"></script>
+<script src="/js/kyc-desk.js?v=20261114-1"></script>
+<script src="/js/mydesk.js?v=20261114-1"></script>
+<script src="/js/report-export.js?v=20261109-1"></script>
+<script src="/js/analytics.js?v=20261112-3"></script>
+</body>
+</html>

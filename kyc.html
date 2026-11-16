@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="crm-build" content="kyc-form">
+<title>CRM نمونه | احراز همکاری</title>
+<link rel="stylesheet" href="/css/tokens.css">
+<link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card" style="max-width:460px;">
+      <div class="login-brand">
+        <img src="/img/crm-logo.svg" alt="CRM نمونه">
+        <div><h1>CRM نمونه</h1><p>فرم احراز همکاری (تعمیرکار / قطعه‌فروش)</p></div>
+      </div>
+      <div id="kyMsg" class="hint"></div>
+      <form id="kyForm" hidden>
+        <div class="cm-warn" id="kyReason" hidden></div>
+        <div class="field"><label>نام و نام خانوادگی <span class="req">*</span></label><input type="text" id="ky_name" required></div>
+        <div class="field"><label>نام فروشگاه / تعمیرگاه</label><input type="text" id="ky_shop"></div>
+        <div class="row2">
+          <div class="field"><label>شهر</label><input type="text" id="ky_city"></div>
+          <div class="field"><label>رسته‌ی کاری</label><select id="ky_job"></select></div>
+        </div>
+        <div class="field"><label>کد ملی</label><input type="text" id="ky_nid" inputmode="numeric" maxlength="10"></div>
+        <div class="field">
+          <label>تصویر مدرک <span class="req">*</span></label>
+          <input type="file" id="ky_files" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,application/pdf" multiple required>
+          <div class="hint">جواز کسب، کارت ملی یا عکس فروشگاه — تا ۴ فایل، هر کدام تا ۲۰ مگابایت (عکس آیفون HEIC هم قبول است).</div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block" id="kySubmit">ارسال مدارک</button>
+      </form>
+    </div>
+  </div>
+  <script src="/js/theme.js"></script>
+  <script src="/js/kyc.js"></script>
+</body>
+</html>

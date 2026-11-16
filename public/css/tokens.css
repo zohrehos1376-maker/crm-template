@@ -1,0 +1,620 @@
+/* ==========================================================================
+   سیستم طراحی CRM CRM نمونه — لایه‌ی پایه (Design Tokens)
+   --------------------------------------------------------------------------
+   این فایل «واژه‌نامه»ی ظاهری برنامه است: فونت، اندازه‌ی متن، رنگ، فاصله،
+   گوشه، سایه و انیمیشن. هیچ صفحه‌ای را مستقیم استایل نمی‌دهد؛ فقط متغیرها را
+   تعریف می‌کند تا بقیه‌ی فایل‌های CSS از آن‌ها استفاده کنند.
+
+   ترتیب بارگذاری: این فایل باید همیشه *قبل از* app.css لود شود.
+   ========================================================================== */
+
+/* ==========================================================================
+   ۱. فونت — Vazirmatn، میزبانی محلی
+   --------------------------------------------------------------------------
+   فونت‌ها از پوشه‌ی public/fonts سرو می‌شوند، نه از CDN. دلیلش این است که
+   سرور دفتر ممکن است اینترنت نداشته باشد؛ با CDN، بارگذاری صفحه معطل می‌ماند
+   و در نهایت فونت جایگزین نمایش داده می‌شود.
+
+   font-display: swap  →  متن بلافاصله با فونت جایگزین دیده می‌شود و به محض
+   آماده شدن Vazirmatn جای خودش را می‌دهد؛ صفحه هیچ‌وقت خالی نمی‌ماند.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-SemiBold.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('/fonts/Vazirmatn-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-sans: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+
+  /* ss01 در Vazirmatn ارقام لاتین را به فارسی تبدیل می‌کند — اما فقط در ظاهر،
+     و مقدار واقعی همان لاتین باقی می‌ماند. چون تبدیل ارقام کار بک‌اند است
+     (تابع toPersianDigits)، این ویژگی خاموش است تا چیزی که روی صفحه دیده
+     می‌شود دقیقاً همان چیزی باشد که ذخیره شده. */
+  --font-features: normal;
+}
+
+/* ==========================================================================
+   ۲. مقیاس تایپوگرافی — نسبت ۱٫۲۵ (Major Third)
+   --------------------------------------------------------------------------
+   هر سطح چهار متغیر دارد: اندازه، ارتفاع خط، ضخامت، فاصله‌ی حروف.
+   قانون: هیچ متنی در برنامه زیر ۱۲ پیکسل نباشد.
+   ========================================================================== */
+
+:root {
+  /* display — فقط برای عدد یا عنوان اصلی داشبورد */
+  --text-display-size: 40px;
+  --text-display-lh: 1.15;
+  --text-display-weight: 700;
+  --text-display-ls: -0.02em;
+
+  /* h1 — عنوان صفحه */
+  --text-h1-size: 30px;
+  --text-h1-lh: 1.25;
+  --text-h1-weight: 700;
+  --text-h1-ls: -0.015em;
+
+  /* h2 — عنوان بخش */
+  --text-h2-size: 24px;
+  --text-h2-lh: 1.3;
+  --text-h2-weight: 600;
+  --text-h2-ls: -0.01em;
+
+  /* h3 — عنوان کارت یا زیربخش */
+  --text-h3-size: 19px;
+  --text-h3-lh: 1.4;
+  --text-h3-weight: 600;
+  --text-h3-ls: 0;
+
+  /* body — متن اصلی */
+  --text-body-size: 15px;
+  --text-body-lh: 1.65;
+  --text-body-weight: 400;
+  --text-body-ls: 0;
+
+  /* sm — برچسب فرم، متن کمکی */
+  --text-sm-size: 13px;
+  --text-sm-lh: 1.5;
+  --text-sm-weight: 500;
+  --text-sm-ls: 0;
+
+  /* xs — کوچک‌ترین اندازه‌ی مجاز */
+  --text-xs-size: 12px;
+  --text-xs-lh: 1.4;
+  --text-xs-weight: 600;
+  --text-xs-ls: 0.01em;
+
+  /* جدول‌ها — متن سلول ۱۴px، هدر ۱۲px با ضخامت ۶۰۰ */
+  --text-table-size: 14px;
+  --text-table-lh: 1.5;
+  --text-table-weight: 400;
+  --text-table-ls: 0;
+
+  --text-table-head-size: 12px;
+  --text-table-head-lh: 1.4;
+  --text-table-head-weight: 600;
+  --text-table-head-ls: 0.01em;
+}
+
+/* ==========================================================================
+   ۳. پالت رنگ
+   --------------------------------------------------------------------------
+   سه دسته:
+     • رمپ خنثی  → پایه‌ی کل رابط (زمینه، متن، خط‌ها)
+     • برند نمونه → طلایی/برنز لوگو، برای تأکید و عناصر شاخص
+     • سمانتیک   → فقط برای «معنی» (خطا، هشدار، موفقیت، اطلاع)
+
+   قانون سختگیرانه: رنگ سمانتیک هرگز برای تزئین به کار نرود. دکمه‌ها،
+   لینک‌ها و عناصر تزئینی فقط از رمپ خنثی یا برند رنگ بگیرند — وگرنه
+   قرمز و سبز معنیِ هشدار و موفقیت‌شان را از دست می‌دهند.
+   ========================================================================== */
+
+:root {
+  /* --- رمپ خنثی --- */
+  --gray-0:   #FFFFFF;
+  --gray-25:  #FCFCFD;
+  --gray-50:  #F8F9FB;
+  --gray-100: #F1F3F6;
+  --gray-200: #E4E7EC;
+  --gray-300: #D0D5DD;
+  --gray-400: #98A2B3;
+  --gray-500: #667085;
+  --gray-600: #475467;
+  --gray-700: #344054;
+  --gray-900: #101828;
+
+  /* --- برند CRM نمونه (آبی سایت crm.example.com؛ طلایی #D0A767 رنگ دوم) --- */
+  --brand-50:  #EEF8FF;
+  --brand-100: #D6EEFC;
+  --brand-500: #2593D3;
+  --brand-600: #1B7DB8;
+  --brand-700: #135E8C;
+  --gold-500:  #D0A767;
+
+  /* --- سمانتیک: خطا / حذف / وضعیت منفی --- */
+  --danger-50:  #FEF3F2;
+  --danger-500: #D92D20;
+  --danger-700: #B42318;
+
+  /* --- سمانتیک: هشدار / نیازمند توجه --- */
+  --warn-50:  #FFFAEB;
+  --warn-500: #DC6803;
+  --warn-700: #B54708;
+
+  /* --- سمانتیک: موفقیت / تأیید --- */
+  --success-50:  #ECFDF3;
+  --success-500: #039855;
+  --success-700: #027A48;
+
+  /* --- سمانتیک: اطلاع / در جریان --- */
+  --info-50:  #EFF8FF;
+  --info-500: #1570EF;
+  --info-700: #175CD3;
+}
+
+/* ==========================================================================
+   ۴. فاصله‌گذاری — گرید ۴ پیکسلی
+   --------------------------------------------------------------------------
+   هر padding و margin و gap باید یکی از این مقادیر باشد.
+   مقدار دلخواه مثل 15px یا 22px مجاز نیست — همین محدودیت است که باعث
+   می‌شود بخش‌های مختلف برنامه کنار هم یکدست به نظر برسند.
+   ========================================================================== */
+
+:root {
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+}
+
+/* ==========================================================================
+   ۵. گوشه، حاشیه، سایه
+   --------------------------------------------------------------------------
+   سایه فقط برای عناصر شناور (منوی بازشو، مودال، پاپ‌آور).
+   کارت‌های داخل صفحه باید از border استفاده کنند نه سایه — وگرنه صفحه
+   شلوغ می‌شود و سلسله‌مراتب بصری از بین می‌رود.
+   ========================================================================== */
+
+:root {
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+
+  --border: 1px solid var(--gray-200);
+
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, .10), 0 1px 2px rgba(16, 24, 40, .06);
+  --shadow-md: 0 4px 8px -2px rgba(16, 24, 40, .10), 0 2px 4px -2px rgba(16, 24, 40, .06);
+  --shadow-lg: 0 12px 16px -4px rgba(16, 24, 40, .08), 0 4px 6px -2px rgba(16, 24, 40, .03);
+}
+
+/* ==========================================================================
+   ۶. انیمیشن
+   --------------------------------------------------------------------------
+   فقط transform و opacity انیمیت شوند. این دو را مرورگر روی کارت گرافیک
+   پردازش می‌کند و نرم‌اند؛ انیمیت کردن width/height/top باعث کندی می‌شود.
+   ========================================================================== */
+
+:root {
+  --ease: cubic-bezier(.16, 1, .3, 1);
+  --dur-fast: 120ms;
+  --dur: 180ms;
+  --dur-slow: 240ms;
+}
+
+/* ==========================================================================
+   ۷. تم‌ها
+   --------------------------------------------------------------------------
+   بخش‌های ۳ تا ۶ «مواد خام» بودند (خاکستری‌ها، طلایی برند، رنگ‌های سمانتیک).
+   این بخش می‌گوید هر کدام از آن‌ها کجای رابط بنشیند — یعنی «نقش» هر رنگ.
+
+   چهار تم:
+     (پیش‌فرض) روشن   — خاکستری خنثی، ظاهر استاندارد CRMهای امروزی
+     dark            — تیره، برای کار در نور کم
+     crm            — کرم و برنز، همان هویت قدیمی برند نمونه
+     contrast        — کنتراست بالا، برای نور زیاد نمایشگاه یا چشم خسته
+
+   انتخاب کاربر روی <html data-theme="..."> نوشته می‌شود. اگر کاربر چیزی
+   انتخاب نکرده باشد، تم روشن استفاده می‌شود مگر اینکه خود ویندوز روی
+   حالت تیره باشد.
+
+   نام متغیرها عمداً همان نام‌های قبلی است تا app.css دست‌نخورده کار کند.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   تم روشن — پیش‌فرض
+   -------------------------------------------------------------------------- */
+:root {
+  --bg:        var(--gray-50);
+  /* نوار برند بالای صفحه — بزرگ‌ترین حضور رنگ در رابط */
+  --header-bg: linear-gradient(135deg, #135E8C 0%, #2593D3 55%, #38B7FF 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: rgba(255,255,255,.78);
+  --header-chip: rgba(255,255,255,.16);
+  --header-chip-border: rgba(255,255,255,.28);
+  --surface:   var(--gray-0);
+  --surface-2: var(--gray-100);
+  --border-c:  var(--gray-200);
+
+  --ink:       var(--gray-900);
+  --ink-soft:  var(--gray-600);
+  --ink-faint: var(--gray-500);
+
+  --accent:      var(--brand-600);
+  --accent-ink:  var(--gray-0);
+  --accent-soft: var(--brand-50);
+  --ring: rgba(37, 147, 211, .35);
+
+  /* خنثیِ ثانویه — برای برچسب‌هایی که معنی وضعیت ندارند */
+  --steel:      var(--gray-600);
+  --steel-soft: var(--gray-100);
+
+  /* رنگ دسته‌بندی کانال (نه وضعیت) — سوشال‌مدیا */
+  --social-bg: #F4F0FB;
+  --social-fg: #6941C6;
+
+  /* وضعیت سرنخ — اینجا رنگ سمانتیک درست به کار رفته: هر رنگ یک معنی دارد */
+  --st-new-bg:      var(--gray-100);   --st-new-fg:      var(--gray-700);
+  --st-progress-bg: var(--info-50);    --st-progress-fg: var(--info-700);
+  --st-contract-bg: var(--warn-50);    --st-contract-fg: var(--warn-700);
+  --st-won-bg:      var(--success-50); --st-won-fg:      var(--success-700);
+  --st-lost-bg:     var(--danger-50);  --st-lost-fg:     var(--danger-700);
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: var(--shadow-sm);
+}
+
+
+/* --------------------------------------------------------------------------
+   تم روشن به‌صورت صریح.
+   مقادیرش همان :root است، ولی این بلوک لازم است: بدون آن، عنصری که
+   data-theme="light" دارد ولی داخل صفحه‌ای با تم دیگر است، رنگ‌های همان تم
+   دیگر را به ارث می‌برد (مثل نمونه‌رنگ‌های صفحهٔ تنظیمات).
+   -------------------------------------------------------------------------- */
+[data-theme="light"] {
+  --bg:        var(--gray-50);
+  --surface:   var(--gray-0);
+  --surface-2: var(--gray-100);
+  --border-c:  var(--gray-200);
+
+  --ink:       var(--gray-900);
+  --ink-soft:  var(--gray-600);
+  --ink-faint: var(--gray-500);
+
+  --accent:      var(--brand-600);
+  --accent-ink:  var(--gray-0);
+  --accent-soft: var(--brand-50);
+  --ring: rgba(37, 147, 211, .35);
+
+  --header-bg: linear-gradient(135deg, #135E8C 0%, #2593D3 55%, #38B7FF 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: rgba(255,255,255,.78);
+  --header-chip: rgba(255,255,255,.16);
+  --header-chip-border: rgba(255,255,255,.28);
+
+  --steel:      var(--gray-600);
+  --steel-soft: var(--gray-100);
+
+  --social-bg: #F4F0FB;
+  --social-fg: #6941C6;
+
+  --st-new-bg:      var(--gray-100);   --st-new-fg:      var(--gray-700);
+  --st-progress-bg: var(--info-50);    --st-progress-fg: var(--info-700);
+  --st-contract-bg: var(--warn-50);    --st-contract-fg: var(--warn-700);
+  --st-won-bg:      var(--success-50); --st-won-fg:      var(--success-700);
+  --st-lost-bg:     var(--danger-50);  --st-lost-fg:     var(--danger-700);
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: var(--shadow-sm);
+}
+
+/* --------------------------------------------------------------------------
+   تم تیره
+   -------------------------------------------------------------------------- */
+[data-theme="dark"] {
+  --bg:        #0C111D;
+  --header-bg: linear-gradient(135deg, #0B2233 0%, #12405F 55%, #1B6FA3 100%);
+  --header-ink: #F2F9FF;
+  --header-ink-soft: rgba(242,249,255,.72);
+  --header-chip: rgba(255,255,255,.10);
+  --header-chip-border: rgba(255,255,255,.18);
+  --surface:   #131A29;
+  --surface-2: #1B2436;
+  --border-c:  #29344A;
+
+  --ink:       #F2F4F7;
+  --ink-soft:  #B4BCCA;
+  --ink-faint: #8B94A6;
+
+  --accent:      #38B7FF;
+  --accent-ink:  #04121C;
+  --accent-soft: #0E2A3D;
+  --ring: rgba(56, 183, 255, .40);
+
+  --steel:      #A7B0BF;
+  --steel-soft: #222B3C;
+
+  --social-bg: #2A2140;
+  --social-fg: #C3B0F0;
+
+  --st-new-bg:      #1E2637; --st-new-fg:      #C3CBD9;
+  --st-progress-bg: #10243D; --st-progress-fg: #84C0F5;
+  --st-contract-bg: #2E2109; --st-contract-fg: #F0B457;
+  --st-won-bg:      #0B2C1E; --st-won-fg:      #5FD39B;
+  --st-lost-bg:     #31150F; --st-lost-fg:     #F58B7E;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: 0 1px 3px rgba(0, 0, 0, .40), 0 8px 24px -12px rgba(0, 0, 0, .60);
+}
+
+/* اگر کاربر تمی انتخاب نکرده باشد، از تنظیم خود ویندوز پیروی می‌کنیم */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --bg:        #0C111D;
+    --header-bg: linear-gradient(135deg, #0B2233 0%, #12405F 55%, #1B6FA3 100%);
+    --header-ink: #F2F9FF;
+    --header-ink-soft: rgba(242,249,255,.72);
+    --header-chip: rgba(255,255,255,.10);
+    --header-chip-border: rgba(255,255,255,.18);
+    --surface:   #131A29;
+    --surface-2: #1B2436;
+    --border-c:  #29344A;
+
+    --ink:       #F2F4F7;
+    --ink-soft:  #B4BCCA;
+    --ink-faint: #8B94A6;
+
+    --accent:      #38B7FF;
+    --accent-ink:  #04121C;
+    --accent-soft: #0E2A3D;
+    --ring: rgba(56, 183, 255, .40);
+
+    --steel:      #A7B0BF;
+    --steel-soft: #222B3C;
+
+    --social-bg: #2A2140;
+    --social-fg: #C3B0F0;
+
+    --st-new-bg:      #1E2637; --st-new-fg:      #C3CBD9;
+    --st-progress-bg: #10243D; --st-progress-fg: #84C0F5;
+    --st-contract-bg: #2E2109; --st-contract-fg: #F0B457;
+    --st-won-bg:      #0B2C1E; --st-won-fg:      #5FD39B;
+    --st-lost-bg:     #31150F; --st-lost-fg:     #F58B7E;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+    --shadow: 0 1px 3px rgba(0, 0, 0, .40), 0 8px 24px -12px rgba(0, 0, 0, .60);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   تم نمونه — کرم و برنز، هویت قدیمی برند
+   -------------------------------------------------------------------------- */
+[data-theme="crm"] {
+  --bg:        #F1EEE7;
+  --header-bg: linear-gradient(135deg, #135E8C 0%, #2593D3 60%, #D0A767 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: rgba(255,255,255,.80);
+  --header-chip: rgba(255,255,255,.18);
+  --header-chip-border: rgba(255,255,255,.30);
+  --surface:   #FFFFFF;
+  --surface-2: #F6F2EA;
+  --border-c:  #E3DBCB;
+
+  --ink:       #25201A;
+  --ink-soft:  #6B6153;
+  --ink-faint: #8A7F70;
+
+  --accent:      #8E6A2E;
+  --accent-ink:  #FFFFFF;
+  --accent-soft: #F1E4CB;
+  --ring: rgba(173, 131, 72, .35);
+
+  --steel:      #5E656C;
+  --steel-soft: #E7EAEC;
+
+  --social-bg: #EFE6F4;
+  --social-fg: #7A4E93;
+
+  /* حتی در تم گرم، وضعیت‌ها رنگ معنایی خودشان را نگه می‌دارند —
+     وگرنه دوباره همه‌چیز کرم می‌شود و هیچ ردیفی از بقیه متمایز نیست. */
+  --st-new-bg:      #EEEAE2; --st-new-fg:      #54493A;
+  --st-progress-bg: #E4EEF8; --st-progress-fg: #2E5F91;
+  --st-contract-bg: #FBF0DC; --st-contract-fg: #8A5F10;
+  --st-won-bg:      #E3F5EC; --st-won-fg:      #1C6B45;
+  --st-lost-bg:     #FBE4E1; --st-lost-fg:     #A83122;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: 0 1px 2px rgba(37, 32, 26, .05), 0 8px 24px -12px rgba(37, 32, 26, .18);
+}
+
+/* --------------------------------------------------------------------------
+   تم کنتراست بالا — خط‌های پررنگ‌تر، متن تیره‌تر
+   برای نور زیاد نمایشگاه یا چشمی که خسته شده است.
+   -------------------------------------------------------------------------- */
+[data-theme="contrast"] {
+  --bg:        #FFFFFF;
+  --header-bg: linear-gradient(135deg, #2E2107 0%, #5C4310 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: #F0E6CE;
+  --header-chip: rgba(255,255,255,.20);
+  --header-chip-border: #FFFFFF;
+  --surface:   #FFFFFF;
+  --surface-2: #F1F3F6;
+  --border-c:  #667085;
+
+  --ink:       #000000;
+  --ink-soft:  #1D2939;
+  --ink-faint: #344054;
+
+  --accent:      #5C4310;
+  --accent-ink:  #FFFFFF;
+  --accent-soft: #F5EAD3;
+  --ring: rgba(92, 67, 16, .55);
+
+  --steel:      #1D2939;
+  --steel-soft: #E4E7EC;
+
+  --social-bg: #EDE4FA;
+  --social-fg: #4A1D96;
+
+  --st-new-bg:      #E4E7EC; --st-new-fg:      #101828;
+  --st-progress-bg: #D6E9FF; --st-progress-fg: #0B3F8F;
+  --st-contract-bg: #FDECC8; --st-contract-fg: #7A3A02;
+  --st-won-bg:      #CFF5E1; --st-won-fg:      #01543C;
+  --st-lost-bg:     #FEE0DD; --st-lost-fg:     #8B1A12;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: 0 0 0 1px #667085, var(--shadow-md);
+}
+
+
+/* --------------------------------------------------------------------------
+   تم آبی روشن — پالت روشن و سرزنده با آبی به‌عنوان رنگ اصلی
+   نکته: چون رنگ اصلی آبی است، رنگ وضعیت «در حال پیگیری» به فیروزه‌ای تغییر
+   کرده تا با دکمه‌ها و تب فعال اشتباه گرفته نشود.
+   -------------------------------------------------------------------------- */
+[data-theme="ocean"] {
+  --bg:        #F4F7FE;
+  --surface:   #FFFFFF;
+  --surface-2: #EDF2FD;
+  --border-c:  #D9E2F5;
+
+  --ink:       #0F1E3D;
+  --ink-soft:  #465A85;
+  --ink-faint: #6B7CA3;
+
+  --accent:      #2563EB;
+  --accent-ink:  #FFFFFF;
+  --accent-soft: #DBEAFE;
+  --ring: rgba(37, 99, 235, .35);
+
+  --header-bg: linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #3B82F6 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: rgba(255,255,255,.80);
+  --header-chip: rgba(255,255,255,.18);
+  --header-chip-border: rgba(255,255,255,.32);
+
+  --steel:      #475467;
+  --steel-soft: #E8EDF9;
+
+  --social-bg: #EDE9FE;
+  --social-fg: #6D28D9;
+
+  --st-new-bg:      #E4E9F5; --st-new-fg:      #3C4A6B;
+  --st-progress-bg: #CFFAFE; --st-progress-fg: #0E7490;
+  --st-contract-bg: #FEF3C7; --st-contract-fg: #B45309;
+  --st-won-bg:      #D1FAE5; --st-won-fg:      #047857;
+  --st-lost-bg:     #FEE2E2; --st-lost-fg:     #DC2626;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: 0 1px 3px rgba(30, 58, 138, .12), 0 8px 24px -12px rgba(30, 58, 138, .22);
+}
+
+/* --------------------------------------------------------------------------
+   تم بنفش — پالت روشن با بنفش به‌عنوان رنگ اصلی.
+   بنفش هیچ معنی وضعیتی ندارد، پس با آبی/سبز/قرمز تداخل نمی‌کند.
+   -------------------------------------------------------------------------- */
+[data-theme="violet"] {
+  --bg:        #F8F5FF;
+  --surface:   #FFFFFF;
+  --surface-2: #F2ECFE;
+  --border-c:  #E4DAF7;
+
+  --ink:       #1F1235;
+  --ink-soft:  #57466F;
+  --ink-faint: #7A6994;
+
+  --accent:      #7C3AED;
+  --accent-ink:  #FFFFFF;
+  --accent-soft: #EDE9FE;
+  --ring: rgba(124, 58, 237, .35);
+
+  --header-bg: linear-gradient(135deg, #4C1D95 0%, #7C3AED 55%, #A78BFA 100%);
+  --header-ink: #FFFFFF;
+  --header-ink-soft: rgba(255,255,255,.80);
+  --header-chip: rgba(255,255,255,.18);
+  --header-chip-border: rgba(255,255,255,.32);
+
+  --steel:      #55496B;
+  --steel-soft: #EDE7F9;
+
+  --social-bg: #FCE7F3; --social-fg: #BE185D;
+
+  --st-new-bg:      #EAE4F6; --st-new-fg:      #4A3D63;
+  --st-progress-bg: #DBEAFE; --st-progress-fg: #1D4ED8;
+  --st-contract-bg: #FEF3C7; --st-contract-fg: #B45309;
+  --st-won-bg:      #D1FAE5; --st-won-fg:      #047857;
+  --st-lost-bg:     #FEE2E2; --st-lost-fg:     #DC2626;
+  --st-contacted-bg: var(--social-bg); --st-contacted-fg: var(--social-fg); /* تماس اولیه/ارسال پیام */
+
+  --shadow: 0 1px 3px rgba(76, 29, 149, .12), 0 8px 24px -12px rgba(76, 29, 149, .22);
+}
+
+/* سازگاری با کد قدیمی: app.css از نام --border استفاده می‌کند و در بخش ۵
+   همین نام به‌صورت «۱ پیکسل خط کامل» تعریف شده است. برای اینکه هر دو کار
+   کنند، رنگِ تنهای خط با نام --border-c نگه داشته می‌شود و خط کامل اینجا
+   از روی همان ساخته می‌شود. */
+:root {
+  --border: 1px solid var(--border-c);
+}
+
+/* ==========================================================================
+   ۸. پایه — کمینه‌ترین چیزی که لایه‌ی توکن اعمال می‌کند
+   ========================================================================== */
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: var(--font-features);
+}
+
+/* احترام به تنظیم «کاهش حرکت» سیستم‌عامل — برای کاربرانی که با انیمیشن
+   اذیت می‌شوند. انیمیشن‌ها حذف نمی‌شوند، فقط آنی می‌شوند. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0.01ms;
+    --dur: 0.01ms;
+    --dur-slow: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,531 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../node_modules/.prisma/client-mysql"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  rep
+  manager
+}
+
+model Branch {
+  id        String   @id @default(uuid()) @db.Char(36)
+  name      String   @db.VarChar(191)
+  city      String?  @db.VarChar(191)
+  address   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  users User[]
+  leads Lead[]
+
+  @@map("branches")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Char(36)
+  username     String   @unique @db.VarChar(191)
+  passwordHash String   @map("password_hash") @db.VarChar(191)
+  fullName     String   @map("full_name") @db.VarChar(191)
+  role         Role     @default(rep)
+  // عنوان دلخواه نقش (مثلاً «مدیر کل»، «پشتیبان») — فقط برای نمایش؛ دسترسی واقعی از permissions می‌آید
+  roleTitle    String?  @map("role_title") @db.VarChar(40)
+  isActive     Boolean  @default(true) @map("is_active")
+  branchId     String?  @map("branch_id") @db.Char(36)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  // دسترسی‌های اضافه‌ی کارشناس (کلیدهای shared/permissions.js با کاما)؛ مدیر همه را دارد
+  permissions  String?  @map("permissions") @db.Text
+
+  branch        Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  leads         Lead[]              @relation("LeadOwner")
+  followups     Followup[]
+  statusChanges LeadStatusHistory[]
+  pipelines     Pipeline[]
+  pipelineLogs  PipelineItemLog[]
+  settingsEdits Setting[]
+  inventoryEdits VehicleInventory[]
+  operatedCalls  CallLog[]           @relation("CallOperator")
+
+  @@index([branchId])
+  @@map("users")
+}
+
+model Lead {
+  id               String    @id @default(uuid()) @db.Char(36)
+  customerName     String    @map("customer_name") @db.VarChar(191)
+  phone            String    @db.VarChar(191)
+  shopName         String?   @map("shop_name") @db.VarChar(191)
+  city             String? @db.VarChar(100)
+  jobType          String?   @map("job_type") @db.VarChar(50)
+  // احراز همکاری: none / pending / approved / rejected
+  kycStatus        String    @default("none") @map("kyc_status") @db.VarChar(16)
+  // لینک یک‌بارمصرف فرم احراز (پیامک می‌شود) و آخرین تصمیم
+  kycToken          String?   @unique @map("kyc_token") @db.VarChar(64)
+  kycTokenExpiresAt DateTime? @map("kyc_token_expires_at") @db.DateTime(3)
+  kycReason         String?   @map("kyc_reason") @db.Text
+  kycSubmittedAt    DateTime? @map("kyc_submitted_at") @db.DateTime(3)
+  kycReviewedAt     DateTime? @map("kyc_reviewed_at") @db.DateTime(3)
+  kycReviewedBy     String?   @map("kyc_reviewed_by") @db.Char(36)
+  // رد احراز به مشتری اطلاع داده شد (پیامک/تماس) — پله‌ی «رد شد» با این بسته می‌شود
+  kycRejectNotifiedAt DateTime? @map("kyc_reject_notified_at") @db.DateTime(3)
+  // اولین خرید مشتری — پله‌ی «خرید کرد»
+  firstPurchaseAt     DateTime? @map("first_purchase_at") @db.DateTime(3)
+  // آخرین خرید + قدم چرخه‌ی پیگیری بعد از خرید (ship / reorder / periodic)
+  // — shared/purchase-cycle.js
+  lastPurchaseAt      DateTime? @map("last_purchase_at") @db.DateTime(3)
+  purchaseFollowStep  String?   @map("purchase_follow_step") @db.VarChar(16)
+  alvarCode           String?   @map("alvar_code") @db.VarChar(32)
+  nationalId        String?   @map("national_id") @db.VarChar(16)
+  channel          String?   @db.VarChar(191)
+  // PostgreSQL uses a native String[]; JSON preserves the same JS array API in MySQL.
+  preferredContact Json      @map("preferred_contact")
+  // برچسب‌های دلخواه مشتری. در PostgreSQL یک String[] است؛ JSON همان آرایه را در MySQL نگه می‌دارد.
+  tags             Json?
+  paymentTerms     String?   @map("payment_terms") @db.VarChar(191)
+  deliveryType     String?   @map("delivery_type") @db.VarChar(191)
+  currentCar       String?   @map("current_car") @db.VarChar(191)
+  status           String    @default("جدید") @db.VarChar(191)
+  cancelReason     String?   @map("cancel_reason") @db.Text
+  notes            String?   @db.Text
+  // CRM نمونه: گروه پشتیبان مشتری
+  supportGroupPlatform String? @map("support_group_platform") @db.VarChar(30)
+  supportGroupName     String? @map("support_group_name") @db.VarChar(120)
+  supportGroupLink     String? @map("support_group_link") @db.VarChar(300)
+  supportGroupMembers  String? @map("support_group_members") @db.Text
+  ownerId          String    @map("owner_id") @db.Char(36)
+  branchId         String?   @map("branch_id") @db.Char(36)
+  priceFrom        BigInt?   @map("price_from")
+  priceTo          BigInt?   @map("price_to")
+  nextFollowUpDate DateTime? @map("next_follow_up_date") @db.DateTime(3)
+  nextFollowUpNote String?   @map("next_follow_up_note") @db.Text
+  soldCompany      String?   @map("sold_company") @db.VarChar(191)
+  soldModel        String?   @map("sold_model") @db.VarChar(191)
+  soldPrice        BigInt?   @map("sold_price")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime  @map("updated_at") @db.DateTime(3)
+
+  owner         User                @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  branch        Branch?             @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  vehicles      LeadVehicle[]
+  followups     Followup[]
+  statusHistory LeadStatusHistory[]
+  pipelineItems PipelineItem[]
+  callLogs      CallLog[]
+  audits        LeadAudit[]
+  tasks         LeadTask[]
+  salesReports  SalesReport[]
+  smsLogs       SmsLog[]
+  kycDocuments  KycDocument[]
+
+  @@index([ownerId])
+  @@index([branchId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([nextFollowUpDate])
+  @@index([phone])
+  @@index([kycStatus])
+  @@map("leads")
+}
+
+model LeadVehicle {
+  id        String  @id @default(uuid()) @db.Char(36)
+  leadId    String  @map("lead_id") @db.Char(36)
+  position  Int     @default(0)
+  company   String? @db.VarChar(191)
+  model     String? @db.VarChar(191)
+  bodyType  String? @map("body_type") @db.VarChar(191)
+  available String? @db.VarChar(191)
+  package   String? @db.Text
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("lead_vehicles")
+}
+
+model Followup {
+  id           String   @id @default(uuid()) @db.Char(36)
+  leadId       String   @map("lead_id") @db.Char(36)
+  userId       String   @map("user_id") @db.Char(36)
+  followupDate DateTime @map("followup_date") @db.DateTime(3)
+  content      String   @db.Text
+  outcome      String?  @db.Text
+  // آیا در همین پیگیری برای مشتری پیام (پیامک/واتساپ) فرستاده شده؟ — همان دو
+  // پرچم نسخه‌ی PostgreSQL، تا هر دو موتور یک ساختار داشته باشند.
+  messageSent    Boolean @default(false) @map("message_sent")
+  viaSocialMedia Boolean @default(false) @map("via_social_media")
+  // قدم «پیگیری مرحله اول» (message / call1 / call2 / …)؛ برای پیگیری آزاد null.
+  // @@unique پایین با null چندباره مشکلی ندارد (MySQL هم هر NULL را جدا می‌شمارد).
+  step         String?  @db.VarChar(16)
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@unique([leadId, step])
+  @@index([leadId])
+  @@index([userId])
+  @@map("followups")
+}
+
+model LeadStatusHistory {
+  id        String   @id @default(uuid()) @db.Char(36)
+  leadId    String   @map("lead_id") @db.Char(36)
+  oldStatus String?  @map("old_status") @db.VarChar(191)
+  newStatus String   @map("new_status") @db.VarChar(191)
+  changedBy String?  @map("changed_by") @db.Char(36)
+  changedAt DateTime @default(now()) @map("changed_at") @db.DateTime(3)
+
+  lead Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@map("lead_status_history")
+}
+
+model VehicleInventory {
+  id        String   @id @default(uuid()) @db.Char(36)
+  company   String   @db.VarChar(191)
+  model     String   @db.VarChar(191)
+  year      Int?
+  color     String?  @db.VarChar(191)
+  price     BigInt?
+  available Boolean  @default(true)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+  updatedBy String?  @map("updated_by") @db.Char(36)
+
+  updatedByUser User? @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("vehicle_inventory")
+}
+
+// کاریز (پروژه‌ی پیگیری): یک گروه از مشتری‌ها که کارشناس روی آن‌ها یک کار مشخص
+// (پیام → تماس → پیگیری → اتمام) را مرحله‌به‌مرحله جلو می‌برد.
+model Pipeline {
+  id        String    @id @default(uuid()) @db.Char(36)
+  name      String @db.VarChar(191)
+  createdBy String    @map("created_by") @db.Char(36)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  closedAt  DateTime? @map("closed_at") @db.DateTime(3)
+
+  creator User           @relation(fields: [createdBy], references: [id], onDelete: Restrict)
+  items   PipelineItem[]
+
+  @@index([createdBy])
+  @@map("pipelines")
+}
+
+// هر مشتری در هر کاریز فقط یک کارت دارد؛ stage مرحله‌ی فعلی کارت است.
+// stage: message | call_failed | call_ok | following | done — result فقط در done پر می‌شود.
+model PipelineItem {
+  id          String    @id @default(uuid()) @db.Char(36)
+  pipelineId  String    @map("pipeline_id") @db.Char(36)
+  leadId      String    @map("lead_id") @db.Char(36)
+  stage       String    @default("message") @db.VarChar(16)
+  // تیک «پیام ارسال شد» — کارشناس بعد از ارسال پیام می‌زند (فقط برای اطلاع، شرط انتقال نیست).
+  messageSent Boolean   @default(false) @map("message_sent")
+  result      String?   @db.VarChar(16)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt   DateTime  @map("updated_at") @db.DateTime(3)
+
+  pipeline Pipeline          @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  lead     Lead              @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  logs     PipelineItemLog[]
+
+  @@unique([pipelineId, leadId])
+  @@index([leadId])
+  @@map("pipeline_items")
+}
+
+// تاریخچه‌ی مراحل هر کارت با یادداشت همان مرحله — در پروفایل مشتری نشان داده می‌شود.
+model PipelineItemLog {
+  id        String   @id @default(uuid()) @db.Char(36)
+  itemId    String   @map("item_id") @db.Char(36)
+  stage     String   @db.VarChar(16)
+  note      String?  @db.Text
+  userId    String   @map("user_id") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  item PipelineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([itemId])
+  @@map("pipeline_item_logs")
+}
+
+model Setting {
+  key       String   @id @db.VarChar(191)
+  value     String   @db.Text
+  updatedAt DateTime @map("updated_at") @db.DateTime(3)
+  updatedBy String?  @map("updated_by") @db.Char(36)
+
+  updatedByUser User? @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("settings")
+}
+
+model Session {
+  sid    String   @id @db.VarChar(191)
+  sess   Json
+  expire DateTime @db.DateTime(6)
+
+  @@index([expire], map: "IDX_session_expire")
+  @@map("session")
+}
+
+// باشگاه مشتریان — همتای مدل PostgreSQL (prisma/schema.prisma)؛ توضیحات آن‌جاست.
+model ClubMember {
+  id             String    @id @default(uuid()) @db.Char(36)
+  customerName   String    @map("customer_name") @db.VarChar(191)
+  phone          String?   @db.VarChar(32)
+  purchaseDate   DateTime? @map("purchase_date") @db.DateTime(3)
+  purchasedModel String?   @map("purchased_model") @db.VarChar(191)
+  birthDate      DateTime? @map("birth_date") @db.DateTime(3)
+  repName        String?   @map("rep_name") @db.VarChar(191)
+  ownerId        String?   @map("owner_id") @db.Char(36)
+  notes          String?   @db.Text
+  // از فایل حسابداری/فاکتورها: کد مشتری یکتا و اطلاعات هویتی
+  customerCode      String?   @unique @map("customer_code") @db.VarChar(32)
+  nationalId        String?   @map("national_id") @db.VarChar(16)
+  nationalIdStatus  String?   @map("national_id_status") @db.VarChar(64)
+  address           String?   @db.Text
+  // «خریدار قطعی»، «پیش‌خرید»، «خریدار قطعی + پیش‌خرید»، «فقط لغو پیش‌فروش»
+  customerStatus    String?   @map("customer_status") @db.VarChar(64)
+  warnings          String?   @db.Text
+  firstPurchaseDate DateTime? @map("first_purchase_date") @db.DateTime(3)
+  purchases         ClubPurchase[]
+  createdAt      DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([ownerId])
+  @@index([phone])
+  @@map("club_members")
+}
+
+// خریدهای هر عضو باشگاه — یک ردیف برای هر فاکتور/خودرو. مبلغ همان عدد فاکتور (دلار)
+// بدون تبدیل ذخیره می‌شود. نوع فروش: «فروش قطعی»، «پیش‌فروش»، «لغو پیش‌فروش».
+model ClubPurchase {
+  id        String    @id @default(uuid()) @db.Char(36)
+  memberId  String    @map("member_id") @db.Char(36)
+  invoiceNo String?   @map("invoice_no") @db.VarChar(32)
+  date      DateTime? @db.DateTime(3)
+  saleType  String    @map("sale_type") @db.VarChar(32)
+  brand     String? @db.VarChar(64)
+  model     String? @db.VarChar(128)
+  vehicle   String? @db.VarChar(191)
+  year      Int?
+  color     String? @db.VarChar(64)
+  vin       String? @db.VarChar(64)
+  amount    BigInt?
+  note      String? @db.Text
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  member ClubMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([vin])
+  @@map("club_purchases")
+}
+
+// خط تلفن کاری (یک گوشی/سیم‌کارت). اپ «اپ تماس» با کد جفت‌سازی یک‌بارمصرف وصل
+// می‌شود و یک توکن دائمی می‌گیرد که فقط هشِ آن اینجا ذخیره می‌شود.
+model PhoneLine {
+  id               String    @id @default(uuid()) @db.Char(36)
+  name             String @db.VarChar(120)
+  // mobile = گوشی با اپ؛ voip = خط ثابت بعد از راه‌اندازی VoIP
+  lineType         String    @default("mobile") @map("line_type") @db.VarChar(16)
+  branch           String? @db.VarChar(120)
+  simNumber        String?   @map("sim_number") @db.VarChar(32)
+  tokenHash        String?   @unique @map("token_hash") @db.VarChar(128)
+  pairingCode      String?   @unique @map("pairing_code") @db.VarChar(16)
+  pairingExpiresAt DateTime? @map("pairing_expires_at") @db.DateTime(3)
+  isActive         Boolean   @default(true) @map("is_active")
+  lastSeenAt       DateTime? @map("last_seen_at") @db.DateTime(3)
+  appVersion       String?   @map("app_version") @db.VarChar(32)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt        DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  calls CallLog[]
+
+  @@map("phone_lines")
+}
+
+// هر تماس گوشی‌های کاری (ورودی/خروجی/بی‌پاسخ/ردشده). صدای مکالمه ذخیره نمی‌شود.
+// phoneLineId + externalId یکتاست تا ارسال دوباره‌ی اپ، رکورد تکراری نسازد.
+model CallLog {
+  id              String    @id @default(uuid()) @db.Char(36)
+  phoneLineId     String    @map("phone_line_id") @db.Char(36)
+  externalId      String    @map("external_id") @db.VarChar(64)
+  phoneRaw        String    @map("phone_raw") @db.VarChar(64)
+  phoneNormalized String    @map("phone_normalized") @db.VarChar(32)
+  // INCOMING | OUTGOING | MISSED | REJECTED
+  direction       String @db.VarChar(16)
+  startedAt       DateTime  @map("started_at") @db.DateTime(3)
+  durationSec     Int       @default(0) @map("duration_sec")
+  leadId          String?   @map("lead_id") @db.Char(36)
+  operatorUserId  String?   @map("operator_user_id") @db.Char(36)
+  callerName      String?   @map("caller_name") @db.VarChar(191)
+  // «از کجا با ما آشنا شد» — همان مقدارهای «کانال ارتباطی» سرنخ
+  heardFrom       String?   @map("heard_from") @db.VarChar(64)
+  note            String? @db.Text
+  // نتیجه‌ی تماس با کلیک (کدها با کاما، shared/call-outcomes.js) و محصول درخواستی
+  outcomes        String?   @map("outcomes") @db.VarChar(191)
+  productNote     String?   @map("product_note") @db.VarChar(191)
+  followUpAt      DateTime? @map("follow_up_at") @db.DateTime(3)
+  // UNLOGGED | LOGGED
+  logStatus       String    @default("UNLOGGED") @map("log_status") @db.VarChar(16)
+  // دلیل «ثبت نشد» — جدا از note تا با برگرداندن پاک شود و یادداشت مکالمه را خراب نکند
+  dismissReason   String? @db.Text @map("dismiss_reason")
+  callbackDone    Boolean   @default(false) @map("callback_done")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+
+  line     PhoneLine @relation(fields: [phoneLineId], references: [id], onDelete: Cascade)
+  lead     Lead?     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  operator User?     @relation("CallOperator", fields: [operatorUserId], references: [id], onDelete: SetNull)
+
+  @@unique([phoneLineId, externalId])
+  @@index([phoneNormalized])
+  @@index([leadId])
+  @@index([startedAt])
+  @@index([operatorUserId])
+  @@map("call_logs")
+}
+
+// ===================== CRM نمونه: کار مشاور فروش =====================
+
+// سابقه‌ی تغییرات پرونده: هر کار روی مشتری (ویرایش، تغییر مسئول، احراز، وظیفه، گزارش، پیامک)
+model LeadAudit {
+  id        String   @id @default(uuid()) @db.Char(36)
+  leadId    String   @map("lead_id") @db.Char(36)
+  userId    String?  @map("user_id") @db.Char(36)
+  action    String @db.VarChar(32)
+  summary   String? @db.VarChar(191)
+  // JSON: [{ field, label, from, to }]
+  changes   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@map("lead_audits")
+}
+
+// وظیفه‌ی مستقل روی مشتری با موضوع آماده (shared/workdesk.js)
+model LeadTask {
+  id         String    @id @default(uuid()) @db.Char(36)
+  leadId     String    @map("lead_id") @db.Char(36)
+  assigneeId String    @map("assignee_id") @db.Char(36)
+  createdBy  String    @map("created_by") @db.Char(36)
+  topic      String @db.VarChar(64)
+  note       String?   @db.Text
+  dueAt      DateTime  @map("due_at") @db.DateTime(3)
+  status     String    @default("open") @db.VarChar(16)
+  doneAt     DateTime? @map("done_at") @db.DateTime(3)
+  doneBy     String?   @map("done_by") @db.Char(36)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([assigneeId, status, dueAt])
+  @@index([leadId])
+  @@map("lead_tasks")
+}
+
+// گزارش مشاور به مدیر فروش: علت نخریدن، قیمت رقیب، کالای ناموجود، شکایت — با رسیدگی مدیر
+model SalesReport {
+  id         String    @id @default(uuid()) @db.Char(36)
+  leadId     String?   @map("lead_id") @db.Char(36)
+  phone      String @db.VarChar(32)
+  kind       String @db.VarChar(32)
+  // JSON: جزئیات هر نوع (کالا، قیمت ما، رقیب، قیمت رقیب، تعداد، موضوع شکایت، علت)
+  details    String?   @db.Text
+  note       String?   @db.Text
+  status     String    @default("open") @db.VarChar(16)
+  resolution String?   @db.Text
+  createdBy  String    @map("created_by") @db.Char(36)
+  reviewedBy String?   @map("reviewed_by") @db.Char(36)
+  reviewedAt DateTime? @map("reviewed_at") @db.DateTime(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([createdBy, createdAt])
+  @@index([leadId])
+  @@map("sales_reports")
+}
+
+// جمله‌های آماده‌ی فروش (کپی با یک کلیک) و الگوهای پیامک بر اساس موضوع
+model SalesScript {
+  id        String   @id @default(uuid()) @db.Char(36)
+  kind      String   @default("script") @db.VarChar(16)
+  topic     String? @db.VarChar(64)
+  title     String @db.VarChar(120)
+  body      String   @db.Text
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  updatedBy String?  @map("updated_by") @db.Char(36)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.DateTime(3)
+
+  @@index([kind, isActive, sortOrder])
+  @@map("sales_scripts")
+}
+
+// هر پیامک فرستاده‌شده (یا آماده‌شده برای ارسال دستی)
+model SmsLog {
+  id          String   @id @default(uuid()) @db.Char(36)
+  leadId      String?  @map("lead_id") @db.Char(36)
+  phone       String @db.VarChar(32)
+  topic       String? @db.VarChar(64)
+  body        String   @db.Text
+  status      String @db.VarChar(16)
+  providerRef String?  @map("provider_ref") @db.VarChar(191)
+  error       String? @db.VarChar(191)
+  userId      String?  @map("user_id") @db.Char(36)
+  createdAt   DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead? @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([leadId])
+  @@index([createdAt])
+  @@map("sms_logs")
+}
+
+// مدرک‌های احراز هویت همکار (فایل در data/uploads/kyc؛ فقط مسیر اینجاست)
+model KycDocument {
+  id        String   @id @default(uuid()) @db.Char(36)
+  leadId    String   @map("lead_id") @db.Char(36)
+  fileName  String   @default("") @map("file_name") @db.VarChar(191)
+  // عکس فرم همکاری سایت روی خود سایت می‌ماند؛ اینجا فقط آدرسش نگه داشته می‌شود
+  // (fileName برای این‌ها خالی است و mime/size صفر).
+  sourceUrl String?  @map("source_url") @db.VarChar(1000)
+  mime      String @db.VarChar(64)
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("kyc_documents")
+}
+
+// رویدادهای وب‌هوک دریافتی (وردست و …) — برای جلوگیری از ثبت تکراری و دیدن آخرین ورودی‌ها
+model WebhookEvent {
+  id        String   @id @db.VarChar(120)
+  source    String @db.VarChar(32)
+  type      String @db.VarChar(64)
+  leadId    String?  @map("lead_id") @db.Char(36)
+  summary   String? @db.VarChar(191)
+  payload   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([source, createdAt])
+  @@map("webhook_events")
+}

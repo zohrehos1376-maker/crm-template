@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `leads` ADD COLUMN `shop_name` VARCHAR(191) NULL, ADD COLUMN `city` VARCHAR(100) NULL, ADD COLUMN `job_type` VARCHAR(50) NULL, ADD COLUMN `kyc_status` VARCHAR(16) NOT NULL DEFAULT 'none';
+ALTER TABLE `phone_lines` ADD COLUMN `line_type` VARCHAR(16) NOT NULL DEFAULT 'mobile';
+ALTER TABLE `call_logs` ADD COLUMN `outcomes` VARCHAR(191) NULL, ADD COLUMN `product_note` VARCHAR(191) NULL;
