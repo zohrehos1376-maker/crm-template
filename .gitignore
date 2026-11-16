@@ -54,3 +54,6 @@ secrets*.txt
 # اپ ساخته‌شده
 *.apk
 tmp/
+
+# دیتابیس محلی قابل‌حمل (install.bat)
+.mariadb/
